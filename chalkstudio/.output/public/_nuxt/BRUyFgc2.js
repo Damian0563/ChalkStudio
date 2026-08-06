@@ -1,0 +1,1 @@
+import"#entry";var e=``+new URL(`logo.CGn2Y9vv.webp`,import.meta.url).href;export{e as t};

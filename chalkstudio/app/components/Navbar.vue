@@ -1,6 +1,6 @@
 <template>
 	<header class="fixed inset-x-0 top-0 z-50 border-b border-chalk/10 bg-board/80 backdrop-blur-md" role="banner">
-		<div class="mx-auto flex h-16 max-w-content items-center justify-between gap-6 px-5 sm:px-8">
+		<div class="mx-auto flex h-16 w-full items-center justify-between gap-6 px-5 sm:px-8">
 			<NuxtLink to="/" class="group flex shrink-0 items-center gap-3 rounded-sm focus-visible:outline-offset-4"
 				aria-label="ChalkStudio home">
 				<img src="~/assets/logo.webp" alt="logo"
@@ -25,7 +25,7 @@
 				</a>
 				<a href="#contact"
 					class="rounded-sm border border-chalk/25 px-4 py-2 font-sans text-sm font-semibold text-chalk transition-colors hover:border-chalk/50 hover:bg-chalk/5">
-					Get started
+					Try for free
 				</a>
 
 				<button type="button"

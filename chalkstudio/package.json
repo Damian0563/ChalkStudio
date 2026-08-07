@@ -5,6 +5,7 @@
 	"scripts": {
 		"build": "nuxt build",
 		"dev": "nuxt dev",
+		"typecheck": "nuxt typecheck",
 		"generate": "nuxt generate",
 		"preview": "nuxt preview",
 		"postinstall": "nuxt prepare"
@@ -15,5 +16,9 @@
 		"nuxt": "^4.5.1",
 		"vue": "^3.5.40",
 		"vue-router": "^5.2.0"
+	},
+	"devDependencies": {
+		"typescript": "~5.8.3",
+		"vue-tsc": "^3.3.9"
 	}
 }

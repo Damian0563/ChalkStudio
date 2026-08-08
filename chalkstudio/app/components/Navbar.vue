@@ -19,14 +19,14 @@
 			</nav>
 
 			<div class="flex items-center gap-3">
-				<a href="#contact"
+				<button type="button" @click="emit('openSignIn')"
 					class="hidden font-sans text-sm font-medium text-chalk-muted transition-colors hover:text-chalk sm:inline">
 					Sign in
-				</a>
-				<a href="#contact"
+				</button>
+				<button type="button" @click="emit('openSignUp')"
 					class="rounded-sm border border-chalk/25 px-4 py-2 font-sans text-sm font-semibold text-chalk transition-colors hover:border-chalk/50 hover:bg-chalk/5">
 					Try for free
-				</a>
+				</button>
 
 				<button type="button"
 					class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-chalk/15 text-chalk md:hidden"
@@ -56,9 +56,10 @@
 					</a>
 				</li>
 				<li class="mt-2 border-t border-chalk/10 pt-3">
-					<a href="#contact" class="block px-2 py-2 font-sans text-sm text-chalk-muted" @click="menuOpen = false">
+					<button type="button" class="block w-full px-2 py-2 text-left font-sans text-sm text-chalk-muted"
+						@click="emit('openSignIn'); menuOpen = false">
 						Sign in
-					</a>
+					</button>
 				</li>
 			</ul>
 		</nav>
@@ -66,8 +67,11 @@
 </template>
 
 <script setup lang="ts">
-const menuOpen = ref(false)
-
+const menuOpen: Ref<boolean> = ref(false)
+const emit = defineEmits<{
+	openSignIn: []
+	openSignUp: []
+}>()
 const navLinks = [
 	{ label: 'Product', href: '#product' },
 	{ label: 'For schools', href: '#schools' },

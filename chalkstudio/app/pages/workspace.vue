@@ -1,7 +1,6 @@
 <template>
 	<div>
-		<h1>Workspace</h1>
-		<button type="button" @click="navigateTo('/session')">New</button>
+		<button type="button" @click="navigateTo('/session/123')">New</button>
 	</div>
 </template>
 

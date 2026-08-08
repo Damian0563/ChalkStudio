@@ -2,7 +2,15 @@
 export default defineNuxtConfig({
 	compatibilityDate: '2025-07-15',
 	devtools: { enabled: true },
-	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon'],
+	devServer: {
+		port: 3000,
+	},
+	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt'],
+	nitro: {
+		experimental: {
+			websocket: true
+		}
+	},
 	tailwindcss: {
 		cssPath: '~/assets/css/main.css',
 		configPath: 'tailwind.config.ts',
@@ -10,6 +18,17 @@ export default defineNuxtConfig({
 	icon: {
 		clientBundle: {
 			scan: true,
+		},
+	},
+	build: {
+		transpile: ['vue-konva'],
+	},
+	vite: {
+		resolve: {
+			dedupe: ['konva'],
+		},
+		optimizeDeps: {
+			include: ['konva', 'vue-konva'],
 		},
 	},
 	app: {

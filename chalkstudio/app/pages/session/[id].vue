@@ -26,6 +26,7 @@ type VueKonvaComponentRef = {
 	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer
 }
 const color: Ref<string> = ref('#f5f0e8')
+const strokeWidth: Ref<number> = ref(5)
 const user: Ref<string> = ref('Damian')
 const width: Ref<number> = ref(0)
 const height: Ref<number> = ref(0)
@@ -42,6 +43,9 @@ const stageConfig = computed(() => ({
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined
 const { popUpSprite } = useBoardPopUp({ getLayer })
+const remoteLines = new Map<string, KonvaTypes.Line>()
+let LAST_SPRITEPOP: undefined | number = undefined
+const SPRITEPOP_INTERVAL: number = 1000
 const updateSize = () => {
 	width.value = window.innerWidth
 	height.value = window.innerHeight
@@ -49,27 +53,35 @@ const updateSize = () => {
 
 const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	onMessage(_ws, messageEvent) {
-		const event: BoardEvent = JSON.parse(messageEvent.data) as BoardEvent
-		if (event.type === 'drawStart' || event.type === 'drawEnd') {
-			const pointsSize: number = event.data?.attrs?.points?.length || 0
-			if (pointsSize < 2) return
-			let x: number
-			let y: number
-			if (event.type === 'drawStart') {
-				x = event.data.attrs.points[0]
-				y = event.data.attrs.points[1]
-			} else {
-				x = event.data.attrs.points[pointsSize - 2]
-				y = event.data.attrs.points[pointsSize - 1]
+		const event: BoardEvent = JSON.parse(messageEvent.data as string) as BoardEvent
+		if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
+			if (event.type === 'drawStart' || event.type === 'drawEnd') {
+				const points = event.data?.attrs?.points
+				if (points && points.length >= 2) {
+					const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
+					const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
+					if (LAST_SPRITEPOP === undefined || LAST_SPRITEPOP + SPRITEPOP_INTERVAL < Date.now()) {
+						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
+						LAST_SPRITEPOP = Date.now()
+					}
+				}
 			}
-			popUpSprite({ user: event.user, x: x, y: y })
-		} else if (event.type === 'draw') {
-			const line = Konva.Node.create(event.data) as KonvaTypes.Line
-			getLayer()?.add(line)
-			getLayer()?.batchDraw()
+			const lineId = event.data?.attrs?.id as string | undefined
+			if (!lineId) return
+			const layer = getLayer()
+			if (!layer) return
+			let line = remoteLines.get(lineId)
+			if (!line) {
+				line = Konva.Node.create(event.data) as KonvaTypes.Line
+				layer.add(line)
+				remoteLines.set(lineId, line)
+			} else {
+				line.setAttrs(event.data.attrs)
+			}
+			layer.batchDraw()
+			if (event.type === 'drawEnd') remoteLines.delete(lineId)
 		}
-		console.log(event)
-	}
+	},
 })
 
 onMounted(() => {
@@ -94,9 +106,10 @@ const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 
 	isDrawing.value = true
 	currentLine.value = new Konva.Line({
+		id: crypto.randomUUID(),
 		points: [pos.x, pos.y, pos.x, pos.y],
 		stroke: color.value,
-		strokeWidth: 5,
+		strokeWidth: strokeWidth.value,
 		tension: 0.5,
 		lineCap: 'round',
 		lineJoin: 'round',
@@ -106,6 +119,7 @@ const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 	layer.add(currentLine.value)
 }
 
+const lastWsMessage: Ref<number> = ref<number>(Date.now())
 const handleMouseMove = () => {
 	if (!isDrawing.value || !currentLine.value) return
 	const stage = getStage()
@@ -116,7 +130,9 @@ const handleMouseMove = () => {
 	points.push(pos.x, pos.y)
 	line.points(points)
 	getLayer()?.batchDraw()
-	send(JSON.stringify({ type: 'draw', user: user.value, data: line.toObject() }))
+	if (Date.now() - lastWsMessage.value < 50) return
+	lastWsMessage.value = Date.now()
+	send(JSON.stringify({ type: 'draw', user: user.value, data: currentLine.value.toObject() }))
 }
 
 const handleMouseUp = () => {

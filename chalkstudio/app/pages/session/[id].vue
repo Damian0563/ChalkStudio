@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, BoardSprite } from '~/types/board'
+import type { BoardEvent } from '~/types/board'
 
 definePageMeta({
 	layout: 'blank',
@@ -25,7 +25,6 @@ const Konva = useKonva()
 type VueKonvaComponentRef = {
 	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer
 }
-
 const color: Ref<string> = ref('#f5f0e8')
 const user: Ref<string> = ref('Damian')
 const width: Ref<number> = ref(0)
@@ -42,6 +41,7 @@ const stageConfig = computed(() => ({
 }))
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined
+const { popUpSprite } = useBoardPopUp({ getLayer })
 const updateSize = () => {
 	width.value = window.innerWidth
 	height.value = window.innerHeight
@@ -53,7 +53,8 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 		if (event.type === 'drawStart' || event.type === 'drawEnd') {
 			const pointsSize: number = event.data?.attrs?.points?.length || 0
 			if (pointsSize < 2) return
-			let x, y: number
+			let x: number
+			let y: number
 			if (event.type === 'drawStart') {
 				x = event.data.attrs.points[0]
 				y = event.data.attrs.points[1]
@@ -70,11 +71,6 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 		console.log(event)
 	}
 })
-
-const popUpSprite = (sprite: BoardSprite) => {
-	const position = { x: sprite.x, y: sprite.y }
-	console.log(position)
-}
 
 onMounted(() => {
 	updateSize()
@@ -124,8 +120,9 @@ const handleMouseMove = () => {
 }
 
 const handleMouseUp = () => {
+	if (!currentLine.value) return
 	isDrawing.value = false
-	send(JSON.stringify({ type: 'drawEnd', user: user.value, data: currentLine.value?.toObject() }))
+	send(JSON.stringify({ type: 'drawEnd', user: user.value, data: currentLine.value.toObject() }))
 	currentLine.value = undefined
 }
 </script>

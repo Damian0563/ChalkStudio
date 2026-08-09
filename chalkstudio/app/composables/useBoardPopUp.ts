@@ -1,11 +1,8 @@
 import type KonvaTypes from 'konva'
 import type { BoardSprite } from '~/types/board'
-import logoUrl from '~/assets/logo.webp'
+import userAvatarUrl from '~/assets/user-avatar.svg'
 
 const CHALK = '#f5f0e8'
-const CHALK_MUTED = '#c4bfb4'
-const BOARD_RAISED = '#243044'
-
 type UseBoardPopUpOptions = {
 	getLayer: () => KonvaTypes.Layer | undefined
 	imageUrl?: string
@@ -20,7 +17,7 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 		img.onload = () => {
 			spriteImage.value = img
 		}
-		img.src = options.imageUrl ?? logoUrl
+		img.src = options.imageUrl ?? userAvatarUrl
 	})
 
 	const popUpSprite = (sprite: BoardSprite) => {
@@ -28,7 +25,9 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 		const layer = options.getLayer()
 		if (!layer) return
 
-		const avatarSize = 28
+		const avatarSize = 48
+		const borderWidth = 3
+		const avatarRadius = avatarSize / 2
 		const label = sprite.user.length > 18 ? `${sprite.user.slice(0, 16)}…` : sprite.user
 		const labelPadding = { x: 10, y: 5 }
 		const textNode = new Konva.Text({
@@ -52,13 +51,20 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 			listening: false,
 		})
 		const imageNode = new Konva.Image({
-			x: 0,
-			y: 0,
-			image: spriteImage.value,
+			x: -avatarRadius,
+			y: -avatarRadius,
 			width: avatarSize,
 			height: avatarSize,
-			offsetX: avatarSize / 2,
-			offsetY: avatarSize / 2,
+			image: spriteImage.value,
+			listening: false,
+		})
+		const borderNode = new Konva.Circle({
+			x: 0,
+			y: 0,
+			radius: avatarRadius - borderWidth / 2,
+			stroke: sprite.color,
+			strokeWidth: borderWidth,
+			fill: 'transparent',
 			shadowColor: CHALK,
 			shadowBlur: 10,
 			shadowOpacity: 0.35,
@@ -70,10 +76,10 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 			y: pillY,
 			width: pillWidth,
 			height: pillHeight,
-			fill: BOARD_RAISED,
+			fill: sprite.color,
 			opacity: 0.94,
 			cornerRadius: pillHeight / 2,
-			stroke: CHALK_MUTED,
+			stroke: sprite.color,
 			strokeWidth: 1,
 			shadowColor: '#000',
 			shadowBlur: 10,
@@ -88,6 +94,7 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 		})
 
 		groupNode.add(imageNode)
+		groupNode.add(borderNode)
 		groupNode.add(pillNode)
 		groupNode.add(textNode)
 		layer.add(groupNode)
@@ -103,19 +110,7 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 			opacity: 1,
 			scaleX: 1,
 			scaleY: 1,
-			easing: Konva.Easings.BackEaseOut,
-			onFinish: () => {
-				new Konva.Tween({
-					node: groupNode,
-					duration: 0.9,
-					y: sprite.y - 44,
-					opacity: 0,
-					scaleX: 1.04,
-					scaleY: 1.04,
-					easing: Konva.Easings.EaseOut,
-					onFinish: finish,
-				}).play()
-			},
+			onFinish: finish
 		}).play()
 	}
 

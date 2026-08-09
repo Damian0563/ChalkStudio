@@ -11,12 +11,13 @@ function getRoomName(peer: Peer): string {
 
 export default defineWebSocketHandler({
 	open(peer) {
-		peer.subscribe(getRoomName(peer))
+		peer.context.room = getRoomName(peer)
+		peer.subscribe(peer.context.room as string)
 	},
 	message(peer, message) {
-		peer.publish(getRoomName(peer), message.text())
+		peer.publish(peer.context?.room as string, message)
 	},
 	close(peer) {
-		peer.unsubscribe(getRoomName(peer))
+		peer.unsubscribe(peer.context?.room as string)
 	},
 })

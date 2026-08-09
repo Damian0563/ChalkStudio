@@ -1,67 +1,62 @@
-# Caveman Review — feat branch
+# Caveman Review — current diff
 
-Scope: session canvas + WebSocket collab wiring (Konva, vue-konva, Nitro WS).
+Scope: `session/[id].vue`, `ws/session/[room].ts`, `types/board.ts`.
 
 ---
 
 ## `chalkstudio/app/pages/session/[id].vue`
 
-L33: 🔵 nit: `isPanning` never set — dead state. Remove or wire pan mode.
+L36: 🔵 nit: `isPanning` never set — dead state. Remove or wire pan mode.
 
-L47-55: 🟡 risk: incoming WS only `console.log` — remote strokes never rendered. Parse `event.data`, add `Konva.Line` to layer.
+L30: 🟡 risk: hardcoded `user` ref `'Damian'`. Derive from auth/session id so sprites and events aren't all the same label.
 
-L48-50 / L53-55: 🔵 nit: duplicate logging (`onMessage` + `watch(data)`). Keep one.
+L52: 🟡 risk: `JSON.parse(messageEvent.data)` uncaught — bad payload kills handler. Wrap in try/catch; ignore non-string `data`.
 
-L65: 🔵 nit: `e: any`. Type as Konva event (`Konva.KonvaEventObject<MouseEvent>`).
+L56: 🔴 bug: `let x, y: number` only types `y`; `x` is implicit `any`. Use `let x: number, y: number`.
 
-L83: 🔴 bug: `send()` only on mousedown with partial line — collaborators get a dot, not the stroke. Send on mousemove (throttled) and/or mouseup with final points.
+L58-62: 🟡 risk: `event.data.attrs.points[...]` after optional `event.data?.attrs?.points` — `data` can still be undefined. Guard `event.data?.attrs?.points` before index.
 
-L87-99: 🔴 bug: `handleMouseMove` updates local canvas but never `send()` — other peers stay blank during draw.
+L65-68: 🔴 bug: every `draw` WS message `add()`s a new `Konva.Line` — remote stroke becomes N stacked lines. Key lines by id; update points on existing node or destroy/replace one line per stroke.
 
-L101-104: 🟡 risk: `handleMouseUp` clears line without final sync message — remote may miss stroke end. Send `{ type: 'draw-end', id }` or full points on up.
+L70: 🔵 nit: `console.log(event)` in hot path. Drop or gate behind dev flag.
 
-L57-63: 🟡 risk: no `contextmenu` preventDefault — right-click opens browser menu on canvas. `@contextmenu.prevent` on stage wrapper.
+L74-77: 🟡 risk: `popUpSprite` is a stub (`console.log` only) — `drawStart`/`drawEnd` UX not implemented.
 
-L47: ❓ q: does `useWebSocket('/ws/session/...')` resolve to `ws:` in prod behind reverse proxy, or need explicit `wss://` from runtime config?
+L91: 🟡 risk: `handleMouseDown` typed `MouseEvent` but bound to `@touchstart` — touch coords/button differ. Split handler or union `MouseEvent | TouchEvent`.
 
----
+L100-110: 🟡 risk: no stable line/stroke id in outbound events — remotes can't correlate `drawStart`/`draw`/`drawEnd`. Set `line.id(...)` (or uuid) before first `send`.
 
-## `chalkstudio/app/pages/workspace.vue`
+L123: 🟡 risk: `send()` on every `mousemove` with full `toObject()` — floods WS. Throttle (~16ms) or send point deltas.
 
-L3: 🔴 bug: hardcoded `/session/123` — every "New" joins same room. Generate UUID (`crypto.randomUUID()`) before navigate.
+L128: 🟡 risk: `drawEnd` always sent even when `currentLine` undefined (mouseup without draw). Skip send when `!currentLine.value`.
 
 ---
 
 ## `chalkstudio/server/routes/ws/session/[room].ts`
 
-L16-17: 🟡 risk: blind `peer.publish(room, message.text())` — no size cap, schema check, or rate limit. Validate JSON + max bytes before relay.
+L14: 🟡 risk: `getRoomName` throw in `open` uncaught — bad URL drops connection without clean close. try/catch + `peer.close(1008)`.
 
-L4-9: 🟡 risk: `getRoomName` throws on bad URL — uncaught in `open`/`message`/`close`. Return early or close peer with code 1008.
+L18: 🟡 risk: `publish(..., message)` relays crossws Message wrapper, not client JSON string — clients expect parseable JSON. Use `message.text()` (prior behavior) or `message.json()`.
 
-L13-21: 🔵 nit: `getRoomName(peer)` called 3× per lifecycle. Cache in `open`, store on peer context.
+L18: 🟡 risk: still no payload size cap, schema check, or rate limit before relay.
 
----
-
-## `chalkstudio/app/plugins/vue-konva.client.ts`
-
-(no findings)
+L21: 🟡 risk: `peer.context?.room as string` — if `open` failed before assign, `unsubscribe(undefined)`. Guard or assert room set.
 
 ---
 
-## `chalkstudio/app/composables/useKonva.ts`
+## `chalkstudio/app/types/board.ts`
 
-(no findings)
+L10: 🔵 nit: `type: string` — use discriminated union (`'drawStart' | 'draw' | 'drawEnd'`) so handlers exhaust cleanly.
 
----
-
-## `chalkstudio/nuxt.config.ts`
-
-L10-12: 🟡 risk: `nitro.experimental.websocket` — confirm stable path before prod deploy; flag may change across Nitro versions.
-
-L5-7: 🔵 nit: hardcoded `devServer.port: 3000` — fine locally; omit if team uses other ports.
+L12: 🔵 nit: `data: any` — type as Konva serialized node or `{ attrs: { points?: number[] } }` for draw events.
 
 ---
 
-## `chalkstudio/app/types/konva.d.ts`
+## Resolved from prior review (this diff)
 
-(no findings)
+- Remote strokes now rendered (`draw` branch + `Konva.Node.create`).
+- `send` on mousemove/mouseup wired.
+- `contextmenu` prevented.
+- `getRoomName` cached on `peer.context.room`.
+- Duplicate `watch(data)` logging removed.
+- `e: any` replaced with Konva event types.

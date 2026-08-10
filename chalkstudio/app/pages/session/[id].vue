@@ -6,6 +6,9 @@
 				@touchmove="handleMouseMove" @touchend="handleMouseUp">
 				<v-layer ref="layerRef" />
 			</v-stage>
+			<BoardToolbar />
+			<Settings />
+			<BoardZoom :get-stage="getStage" :get-layer="getLayer" />
 		</div>
 	</ClientOnly>
 </template>
@@ -13,10 +16,16 @@
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
 import type { BoardEvent } from '~/types/board'
-
 definePageMeta({
 	layout: 'blank',
 })
+useHead({
+	bodyAttrs: { class: 'overflow-hidden' },
+})
+const BOARD_WIDTH = 3840
+const BOARD_HEIGHT = 1080
+const viewportWidth = ref(BOARD_WIDTH)
+const viewportHeight = ref(BOARD_HEIGHT)
 
 const route = useRoute()
 const room = computed(() => route.params.id as string)
@@ -28,42 +37,41 @@ type VueKonvaComponentRef = {
 const color: Ref<string> = ref('#f5f0e8')
 const strokeWidth: Ref<number> = ref(5)
 const user: Ref<string> = ref('Damian')
-const width: Ref<number> = ref(0)
-const height: Ref<number> = ref(0)
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
 const isDrawing: Ref<boolean> = ref(false)
 const isPanning: Ref<boolean> = ref(false)
 const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
-	width: width.value,
-	height: height.value,
+	width: viewportWidth.value,
+	height: viewportHeight.value,
 	draggable: false,
 }))
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined
+const getBoardPointer = () => {
+	const stage = getStage()
+	const layer = getLayer()
+	const pos = stage?.getPointerPosition()
+	if (!stage || !layer || !pos) return undefined
+	return layer.getAbsoluteTransform().copy().invert().point(pos)
+}
 const { popUpSprite } = useBoardPopUp({ getLayer })
 const remoteLines = new Map<string, KonvaTypes.Line>()
-let LAST_SPRITEPOP: undefined | number = undefined
+const userSpritePops = new Map<string, number>()
 const SPRITEPOP_INTERVAL: number = 1000
-const updateSize = () => {
-	width.value = window.innerWidth
-	height.value = window.innerHeight
-}
 
 const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	onMessage(_ws, messageEvent) {
 		const event: BoardEvent = JSON.parse(messageEvent.data as string) as BoardEvent
 		if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
-			if (event.type === 'drawStart' || event.type === 'drawEnd') {
-				const points = event.data?.attrs?.points
-				if (points && points.length >= 2) {
-					const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
-					const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
-					if (LAST_SPRITEPOP === undefined || LAST_SPRITEPOP + SPRITEPOP_INTERVAL < Date.now()) {
-						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
-						LAST_SPRITEPOP = Date.now()
-					}
+			const points = event.data?.attrs?.points
+			if (points && points.length >= 2) {
+				const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
+				const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
+				if (userSpritePops.get(event.user) === undefined || userSpritePops.get(event.user)! + SPRITEPOP_INTERVAL < Date.now()) {
+					popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
+					userSpritePops.set(event.user, Date.now())
 				}
 			}
 			const lineId = event.data?.attrs?.id as string | undefined
@@ -76,7 +84,7 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				layer.add(line)
 				remoteLines.set(lineId, line)
 			} else {
-				line.setAttrs(event.data.attrs)
+				line.setAttrs(event.data?.attrs)
 			}
 			layer.batchDraw()
 			if (event.type === 'drawEnd') remoteLines.delete(lineId)
@@ -84,12 +92,9 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	},
 })
 
-onMounted(() => {
-	updateSize()
-	window.addEventListener('resize', updateSize)
-})
-onUnmounted(() => {
-	window.removeEventListener('resize', updateSize)
+onMounted(async () => {
+	viewportWidth.value = window.innerWidth
+	viewportHeight.value = window.innerHeight
 })
 
 const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
@@ -99,10 +104,9 @@ const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 	if (e.evt.button === 2 || isPanning.value) return
 	e.evt.preventDefault()
-	const stage = getStage()
 	const layer = getLayer()
-	const pos = stage?.getPointerPosition()
-	if (!stage || !layer || !pos) return
+	const pos = getBoardPointer()
+	if (!layer || !pos) return
 
 	isDrawing.value = true
 	currentLine.value = new Konva.Line({
@@ -122,8 +126,7 @@ const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 const lastWsMessage: Ref<number> = ref<number>(Date.now())
 const handleMouseMove = () => {
 	if (!isDrawing.value || !currentLine.value) return
-	const stage = getStage()
-	const pos = stage?.getPointerPosition()
+	const pos = getBoardPointer()
 	if (!pos) return
 	const line = currentLine.value
 	const points = line.points()

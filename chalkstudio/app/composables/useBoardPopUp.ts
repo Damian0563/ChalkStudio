@@ -106,7 +106,7 @@ export function useBoardPopUp(options: UseBoardPopUpOptions) {
 		}
 		new Konva.Tween({
 			node: groupNode,
-			duration: 0.3,
+			duration: 0.6,
 			opacity: 1,
 			scaleX: 1,
 			scaleY: 1,

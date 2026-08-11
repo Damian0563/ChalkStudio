@@ -31,18 +31,9 @@
 </template>
 
 <script setup lang="ts">
-import type KonvaTypes from 'konva'
-
-const props = defineProps<{
-	getStage: () => KonvaTypes.Stage | undefined
-	getLayer: () => KonvaTypes.Layer | undefined
+defineProps<{
+	zoomPercent: number
+	increaseZoom: () => void
+	decreaseZoom: () => void
 }>()
-
-const zoom = ref(1)
-const zoomPercent = computed(() => Math.round(zoom.value * 100))
-const { increaseZoom, decreaseZoom } = useZoom({
-	getStage: props.getStage,
-	getLayer: props.getLayer,
-	zoom,
-})
 </script>

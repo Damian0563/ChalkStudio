@@ -36,11 +36,15 @@ export default defineWebSocketHandler({
 		}
 	},
 	message(peer, message) {
-		const event = message.json() as Record<string, unknown>
-		peer.publish(
-			peer.context?.room as string,
-			JSON.stringify({ ...event, color: peer.context.color }),
-		)
+		try {
+			const event = message.json() as Record<string, unknown>
+			peer.publish(
+				peer.context?.room as string,
+				JSON.stringify({ ...event, color: peer.context.color }),
+			)
+		} catch (_) {
+			peer.close(1002)
+		}
 	},
 	close(peer) {
 		peer.unsubscribe(peer.context?.room as string)

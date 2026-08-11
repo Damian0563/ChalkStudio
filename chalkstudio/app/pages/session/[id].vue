@@ -8,7 +8,7 @@
 			</v-stage>
 			<BoardToolbar />
 			<Settings />
-			<BoardZoom :get-stage="getStage" :get-layer="getLayer" />
+			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom" />
 		</div>
 	</ClientOnly>
 </template>
@@ -57,6 +57,10 @@ const getBoardPointer = () => {
 	return layer.getAbsoluteTransform().copy().invert().point(pos)
 }
 const { popUpSprite } = useBoardPopUp({ getLayer })
+const zoom = ref(1)
+const zoomPercent = computed(() => Math.round(zoom.value * 100))
+const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
+useKeyboard({ zoom: { increaseZoom, decreaseZoom } })
 const remoteLines = new Map<string, KonvaTypes.Line>()
 const userSpritePops = new Map<string, number>()
 const SPRITEPOP_INTERVAL: number = 1000
@@ -69,13 +73,14 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 			if (points && points.length >= 2) {
 				const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
 				const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
-				if (userSpritePops.get(event.user) === undefined || userSpritePops.get(event.user)! + SPRITEPOP_INTERVAL < Date.now()) {
+				const lastPop = userSpritePops.get(event.user)
+				if (lastPop === undefined || lastPop + SPRITEPOP_INTERVAL < Date.now()) {
 					popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
 					userSpritePops.set(event.user, Date.now())
 				}
 			}
 			const lineId = event.data?.attrs?.id as string | undefined
-			if (!lineId) return
+			if (!lineId || !event.data) return
 			const layer = getLayer()
 			if (!layer) return
 			let line = remoteLines.get(lineId)
@@ -84,7 +89,7 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				layer.add(line)
 				remoteLines.set(lineId, line)
 			} else {
-				line.setAttrs(event.data?.attrs)
+				line.setAttrs(event.data.attrs)
 			}
 			layer.batchDraw()
 			if (event.type === 'drawEnd') remoteLines.delete(lineId)
@@ -92,9 +97,18 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	},
 })
 
-onMounted(async () => {
+const setViewportSize = () => {
 	viewportWidth.value = window.innerWidth
 	viewportHeight.value = window.innerHeight
+}
+
+onMounted(() => {
+	setViewportSize()
+	window.addEventListener('resize', setViewportSize)
+})
+
+onUnmounted(() => {
+	window.removeEventListener('resize', setViewportSize)
 })
 
 const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {

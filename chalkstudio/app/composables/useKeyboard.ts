@@ -8,7 +8,7 @@ export type UseKeyboardOptions = {
 }
 
 const handleZoomKeys = (e: KeyboardEvent, zoom: KeyboardZoomHandlers): boolean => {
-	if (!zoom || !(e.ctrlKey || e.metaKey)) return false
+	if (!(e.ctrlKey || e.metaKey)) return false
 	if (e.code === 'Equal' || e.code === 'NumpadAdd') {
 		e.preventDefault()
 		zoom.increaseZoom()

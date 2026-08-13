@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="fixed top-4 left-1/2 z-10 flex max-w-[calc(100vw-6rem)] -translate-x-1/2 flex-col overflow-hidden rounded-sm border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+		class="fixed top-4 left-1/2 z-10 flex max-w-[calc(100vw-6rem)] -translate-x-1/2 flex-col overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
 		role="toolbar"
 		aria-label="Drawing tools">
 		<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
@@ -9,21 +9,21 @@
 			<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Tools">
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm bg-chalk/10 text-chalk ring-1 ring-chalk/15"
+					class="flex h-9 w-9 items-center justify-center rounded-lg bg-chalk/10 text-chalk ring-1 ring-chalk/15"
 					aria-label="Pen"
 					aria-pressed="true">
 					<Icon name="lucide:pencil" class="h-4 w-4 shrink-0" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+					class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 					aria-label="Eraser"
 					aria-pressed="false">
 					<Icon name="lucide:eraser" class="h-4 w-4 shrink-0" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+					class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 					aria-label="Pan"
 					aria-pressed="false">
 					<Icon name="lucide:hand" class="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -70,20 +70,20 @@
 			<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Stroke width">
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+					class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 					aria-label="Thin stroke">
 					<span class="block h-px w-4 rounded-full bg-current" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm bg-chalk/10 text-chalk ring-1 ring-chalk/15"
+					class="flex h-9 w-9 items-center justify-center rounded-lg bg-chalk/10 text-chalk ring-1 ring-chalk/15"
 					aria-label="Medium stroke"
 					aria-pressed="true">
 					<span class="block h-0.5 w-4 rounded-full bg-current" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+					class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 					aria-label="Thick stroke">
 					<span class="block h-1 w-4 rounded-full bg-current" aria-hidden="true" />
 				</button>
@@ -94,13 +94,13 @@
 			<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="History">
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+					class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 					aria-label="Undo">
 					<Icon name="lucide:undo-2" class="h-4 w-4 shrink-0" aria-hidden="true" />
 				</button>
 				<button
 					type="button"
-					class="flex h-9 w-9 items-center justify-center rounded-sm text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+					class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 					aria-label="Redo">
 					<Icon name="lucide:redo-2" class="h-4 w-4 shrink-0" aria-hidden="true" />
 				</button>

@@ -55,7 +55,7 @@
 						<img loading="lazy" src="~/assets/logo.webp" alt="ChalkStudio mark" class="mx-auto h-36 w-auto sm:h-44"
 							decoding="async" />
 						<p class="mt-6 text-center font-sans text-xs uppercase tracking-[0.18em] text-chalk-faint">
-							Est. for classrooms
+							Made for classrooms
 						</p>
 					</div>
 				</motion.div>
@@ -74,6 +74,19 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
+const { announce } = useAnnounce()
+const { error } = useFetch('/api/health')
+watch(error, (fetchError) => {
+	if (fetchError) {
+		announce({
+			title: 'Connection issue',
+			message: 'The server appears to be unreachable. Ensure your internet connection is working.',
+			sentiment: 'negative',
+		})
+		return
+	}
+}, { immediate: true })
+
 const highlights = [
 	{ stat: 'One workspace', label: 'Plans, assignments, and feedback without switching tabs.' },
 	{ stat: 'Built for teachers', label: 'Flows shaped by real classroom routines, not enterprise checklists.' },

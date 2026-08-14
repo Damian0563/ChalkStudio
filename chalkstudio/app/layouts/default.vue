@@ -6,6 +6,12 @@
 			<slot />
 		</main>
 		<Footer />
+		<Announce
+			v-if="message"
+			:message="message.message"
+			:title="message.title"
+			:sentiment="message.sentiment"
+			@close="closeAnnounce" />
 		<SignIn v-if="authMode" :mode="authMode" @close="authMode = null" />
 	</div>
 </template>
@@ -14,4 +20,5 @@
 type AuthMode = 'signIn' | 'signUp' | null
 
 const authMode = ref<AuthMode>(null)
+const { message, closeAnnounce } = useAnnounce()
 </script>

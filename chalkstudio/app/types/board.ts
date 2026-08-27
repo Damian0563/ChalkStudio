@@ -1,5 +1,10 @@
 export type Tool = 'pen' | 'eraser' | 'pan'
 
+export type StickyNote = {
+	text: string
+	color: string
+}
+
 export type BoardSprite = {
 	user: string
 	x: number

@@ -53,7 +53,7 @@ const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
 	width: viewportWidth.value,
 	height: viewportHeight.value,
-	draggable: false,
+	draggable: tool.value === "pan",
 }))
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined

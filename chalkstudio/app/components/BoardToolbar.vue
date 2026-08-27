@@ -16,7 +16,8 @@
 						<span class="absolute bottom-1 h-0.5 w-4 rounded-full transition-colors"
 							:style="tool === 'pen' ? { backgroundColor: color } : undefined" aria-hidden="true" />
 					</button>
-					<button type="button" class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="tool === 'eraser'
+					<button ref="eraserButtonRef" type="button"
+						class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="tool === 'eraser'
 						? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
 						: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" aria-label="Eraser"
 						:aria-pressed="tool === 'eraser'" :aria-expanded="penPanelOpen && tool === 'eraser'" aria-haspopup="true"
@@ -163,6 +164,7 @@ const strokeWidth = defineModel<number>('strokeWidth', { required: true })
 const penPanelOpen = defineModel<boolean>('penPanelOpen', { required: true })
 const tool = defineModel<Tool>('tool', { required: true })
 const penButtonRef = ref<HTMLButtonElement>()
+const eraserButtonRef = ref<HTMLButtonElement>()
 const stickyButtonRef = ref<HTMLButtonElement>()
 const { chalks, strokes } = useStrokeConfig()
 const { papers, maxLength, noteText, noteColor, isValid, submit } = useStickyNoteForm()
@@ -212,7 +214,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 	if (stickyPanelOpen.value) {
 		closePanel(stickyPanelOpen, stickyButtonRef)
 	} else if (penPanelOpen.value) {
-		closePanel(penPanelOpen, penButtonRef)
+		closePanel(penPanelOpen, tool.value === 'eraser' ? eraserButtonRef : penButtonRef)
 	}
 }
 

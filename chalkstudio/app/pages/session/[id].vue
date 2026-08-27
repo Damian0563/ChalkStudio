@@ -8,7 +8,8 @@
 				@touchmove="handleMouseMove" @touchend="handleMouseUp">
 				<v-layer ref="layerRef" />
 			</v-stage>
-			<BoardToolbar />
+			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
+				v-model:tool="tool" />
 			<Settings />
 			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom" />
 		</div>
@@ -17,7 +18,7 @@
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent } from '~/types/board'
+import type { BoardEvent, Tool } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
 definePageMeta({
 	layout: 'blank',
@@ -38,13 +39,16 @@ const Konva = useKonva()
 type VueKonvaComponentRef = {
 	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer
 }
+
+const penPanelOpen: Ref<boolean> = ref(false)
 const color: Ref<string> = ref('#f5f0e8')
 const strokeWidth: Ref<number> = ref(5)
+const tool: Ref<Tool> = ref('pen')
+
 const user: Ref<string> = ref('Damian')
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
 const isDrawing: Ref<boolean> = ref(false)
-const isPanning: Ref<boolean> = ref(false)
 const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
 	width: viewportWidth.value,
@@ -61,7 +65,7 @@ const getBoardPointer = () => {
 	return layer.getAbsoluteTransform().copy().invert().point(pos)
 }
 const { popUpSprite } = useBoardPopUp({ getLayer })
-const zoom = ref(1)
+const zoom: Ref<number> = ref(1)
 const zoomPercent = computed(() => Math.round(zoom.value * 100))
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
 useKeyboard({ zoom: { increaseZoom, decreaseZoom } })
@@ -75,8 +79,9 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 		try {
 			const event: BoardEvent = JSON.parse(messageEvent.data as string) as BoardEvent
 			if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
+				const isEraser = event.data?.attrs?.globalCompositeOperation === 'destination-out'
 				const points = event.data?.attrs?.points
-				if (points && points.length >= 2) {
+				if (!isEraser && points && points.length >= 2) {
 					const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
 					const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
 					const lastPop = userSpritePops.get(event.user)
@@ -125,22 +130,26 @@ const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 }
 
 const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
-	if (e.evt.button === 2 || isPanning.value) return
+	if (penPanelOpen.value) {
+		penPanelOpen.value = false
+		return
+	}
+	if (e.evt.button === 2 || tool.value === "pan") return
 	e.evt.preventDefault()
 	const layer = getLayer()
 	const pos = getBoardPointer()
 	if (!layer || !pos) return
-
+	const isEraser = tool.value === 'eraser'
 	isDrawing.value = true
 	currentLine.value = new Konva.Line({
 		id: crypto.randomUUID(),
 		points: [pos.x, pos.y, pos.x, pos.y],
-		stroke: color.value,
+		stroke: isEraser ? '#000000' : color.value,
 		strokeWidth: strokeWidth.value,
 		tension: 0.5,
 		lineCap: 'round',
 		lineJoin: 'round',
-		globalCompositeOperation: 'source-over',
+		globalCompositeOperation: isEraser ? 'destination-out' : 'source-over',
 	})
 	send(JSON.stringify({ type: 'drawStart', user: user.value, data: currentLine.value?.toObject() }))
 	layer.add(currentLine.value)

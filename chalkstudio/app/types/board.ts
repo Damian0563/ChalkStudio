@@ -1,4 +1,4 @@
-
+export type Tool = 'pen' | 'eraser' | 'pan'
 
 export type BoardSprite = {
 	user: string

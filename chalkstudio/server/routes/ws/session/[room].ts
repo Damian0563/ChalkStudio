@@ -1,4 +1,5 @@
 import type { Peer } from 'crossws'
+import type { BoardUser } from '~/types/board'
 
 function getRoomName(peer: Peer): string {
 	const url = new URL(peer.request.url)
@@ -24,6 +25,7 @@ export default defineWebSocketHandler({
 	open(peer) {
 		try {
 			peer.context.room = getRoomName(peer)
+			peer.context.users = new Map<string, BoardUser>()
 			peer.subscribe(peer.context.room as string)
 			const room = peer.context.room as string
 			let roomSize = 0
@@ -38,9 +40,22 @@ export default defineWebSocketHandler({
 	message(peer, message) {
 		try {
 			const event = message.json() as Record<string, unknown>
+			const users = peer.context?.users as Map<string, BoardUser>
+			if (event.type === 'join') {
+				users.set(event.user as string, {
+					name: event.user as string,
+					color: peer.context.color as string,
+				})
+			} else if (event.type === 'leave') {
+				users.delete(event.user as string)
+			}
 			peer.publish(
 				peer.context?.room as string,
-				JSON.stringify({ ...event, color: peer.context.color }),
+				JSON.stringify({
+					...event,
+					color: peer.context.color,
+					others: Object.fromEntries(users ?? []),
+				}),
 			)
 		} catch (_) {
 			peer.close(1002)

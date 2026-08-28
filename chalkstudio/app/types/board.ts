@@ -12,9 +12,17 @@ export type BoardSprite = {
 	color: string
 }
 
+export type BoardUser = {
+	name: string
+	x?: number
+	y?: number
+	color: string
+}
+
 export type BoardEvent = {
 	type: string
 	user: string
 	data: any
 	color?: string
+	others?: Record<string, BoardUser>
 }

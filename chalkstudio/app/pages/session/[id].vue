@@ -10,6 +10,7 @@
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" />
+			<BoardUsersPannel v-model:users="users" />
 			<Settings />
 			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom" />
 		</div>
@@ -18,8 +19,9 @@
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, Tool } from '~/types/board'
+import type { BoardEvent, BoardUser, Tool } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
+import { v4 as uuidv4 } from 'uuid'
 definePageMeta({
 	layout: 'blank',
 })
@@ -45,7 +47,8 @@ const color: Ref<string> = ref('#f5f0e8')
 const strokeWidth: Ref<number> = ref(5)
 const tool: Ref<Tool> = ref('pen')
 
-const user: Ref<string> = ref('Damian')
+const user: Ref<string> = ref(uuidv4().slice(0, 8))
+const users: Ref<Map<string, BoardUser>> = ref(new Map<string, BoardUser>([[user.value, { name: user.value, color: color.value }]]))
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
 const isDrawing: Ref<boolean> = ref(false)
@@ -81,9 +84,9 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 			if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
 				const isEraser = event.data?.attrs?.globalCompositeOperation === 'destination-out'
 				const points = event.data?.attrs?.points
+				const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
+				const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
 				if (!isEraser && points && points.length >= 2) {
-					const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
-					const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
 					const lastPop = userSpritePops.get(event.user)
 					if (lastPop === undefined || lastPop + SPRITEPOP_INTERVAL < Date.now()) {
 						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
@@ -91,9 +94,8 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 					}
 				}
 				const lineId = event.data?.attrs?.id as string | undefined
-				if (!lineId || !event.data) return
 				const layer = getLayer()
-				if (!layer) return
+				if (!lineId || !event.data || !layer) return
 				let line = remoteLines.get(lineId)
 				if (!line) {
 					line = Konva.Node.create(event.data) as KonvaTypes.Line
@@ -103,10 +105,23 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 					line.setAttrs(event.data.attrs)
 				}
 				layer.batchDraw()
+				users.value.set(event.user, {
+					name: event.user,
+					x,
+					y,
+					color: event.color || users.value.get(event.user)?.color || color.value,
+				})
 				if (event.type === 'drawEnd') remoteLines.delete(lineId)
+			} else if (event.type === 'join' || event.type === 'leave') {
+				users.value = event.others
+					? new Map(Object.entries(event.others))
+					: new Map<string, BoardUser>([[user.value, { name: user.value, color: color.value }]])
 			}
 		} catch (_) {
 			quickNotice.value = { message: 'Error parsing message', type: 'error' }
+		} finally {
+			//DEBUG PURPOSES
+			//console.log(users.value)
 		}
 	},
 })
@@ -117,12 +132,16 @@ const setViewportSize = () => {
 }
 
 onMounted(() => {
+	loading.value = true
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
+	send(JSON.stringify({ type: 'join', user: user.value }))
+	loading.value = false
 })
 
 onUnmounted(() => {
 	window.removeEventListener('resize', setViewportSize)
+	send(JSON.stringify({ type: 'leave', user: user.value }))
 })
 
 const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {

@@ -2,7 +2,7 @@
 	<div v-if="!open"
 		class="fixed top-4 right-4 z-10 overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm">
 		<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
-		<button type="button"
+		<button type="button" title="Open settings"
 			class="flex h-10 w-10 items-center justify-center text-chalk transition-colors hover:bg-chalk/[0.06] hover:text-chalk active:bg-coral/15 active:text-coral-soft"
 			aria-label="Open settings" @click="open = true">
 			<Icon name="lucide:settings" class="h-4 w-4 shrink-0" aria-hidden="true" />

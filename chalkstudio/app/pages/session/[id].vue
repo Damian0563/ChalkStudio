@@ -10,7 +10,7 @@
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" />
-			<BoardUsersPannel v-model:users="users" />
+			<BoardUsersPannel v-model:users="users" :main-user="user" />
 			<Settings />
 			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom" />
 		</div>
@@ -22,6 +22,7 @@ import type KonvaTypes from 'konva'
 import type { BoardEvent, BoardUser, Tool } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
 import { v4 as uuidv4 } from 'uuid'
+const user: Ref<string> = ref(uuidv4().slice(0, 8))
 definePageMeta({
 	layout: 'blank',
 })
@@ -47,7 +48,6 @@ const color: Ref<string> = ref('#f5f0e8')
 const strokeWidth: Ref<number> = ref(5)
 const tool: Ref<Tool> = ref('pen')
 
-const user: Ref<string> = ref(uuidv4().slice(0, 8))
 const users: Ref<Map<string, BoardUser>> = ref(new Map<string, BoardUser>([[user.value, { name: user.value, color: color.value }]]))
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
@@ -113,15 +113,29 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				})
 				if (event.type === 'drawEnd') remoteLines.delete(lineId)
 			} else if (event.type === 'join' || event.type === 'leave') {
-				users.value = event.others
-					? new Map(Object.entries(event.others))
-					: new Map<string, BoardUser>([[user.value, { name: user.value, color: color.value }]])
+				const roster = event.others
+					? new Map<string, BoardUser>(Object.entries(event.others))
+					: new Map<string, BoardUser>()
+				if (!roster.has(user.value)) {
+					roster.set(user.value, users.value.get(user.value) ?? { name: user.value, color: color.value })
+				}
+				users.value = roster
 			}
 		} catch (_) {
 			quickNotice.value = { message: 'Error parsing message', type: 'error' }
 		} finally {
-			//DEBUG PURPOSES
-			//console.log(users.value)
+			//DEBUG PURPOSES: mock roster to preview overflow behaviour
+			users.value = new Map<string, BoardUser>([
+				[user.value, { name: user.value, color: color.value }],
+				['mock-1', { name: 'Alice', color: '#e07a5f' }],
+				['mock-2', { name: 'Bartholomew-the-Long-Named', color: '#81b29a' }],
+				['mock-3', { name: 'Charlie', color: '#f2cc8f' }],
+				['mock-4', { name: 'Dominika', color: '#8ecae6' }],
+				['mock-5', { name: 'Edgar', color: '#c77dff' }],
+				['mock-6', { name: 'Fiona', color: '#ffb703' }],
+				['mock-7', { name: 'Grzegorz', color: '#90be6d' }],
+				['mock-8', { name: 'Helena', color: '#f28482' }],
+			])
 		}
 	},
 })

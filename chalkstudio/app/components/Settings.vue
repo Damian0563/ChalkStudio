@@ -27,15 +27,54 @@
 					<Icon name="lucide:x" class="h-4 w-4 shrink-0" aria-hidden="true" />
 				</button>
 			</div>
+			<motion.div class="flex flex-col gap-6 overflow-y-auto px-6 py-5" :initial="{ opacity: 0, y: 16 }"
+				:animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.35, delay: 0.08, ease: [0.22, 1, 0.36, 1] }">
+				<section>
+					<p class="mb-2.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">
+						General
+					</p>
+					<div class="overflow-hidden rounded-lg border border-chalk/10">
+						<label
+							class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-chalk/[0.03]">
+							<span class="text-sm font-semibold text-chalk/90">Focus mode</span>
+							<input v-model="settings.focusMode" type="checkbox" class="peer sr-only" />
+							<span
+								class="relative inline-flex h-6 w-11 shrink-0 rounded-full bg-chalk/[0.08] ring-1 ring-chalk/10 transition-[background-color,box-shadow] duration-200 peer-checked:bg-coral/20 peer-checked:ring-coral/35 peer-focus-visible:ring-2 peer-focus-visible:ring-coral-soft peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-board-raised peer-checked:[&>span]:translate-x-5">
+								<span
+									class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-chalk shadow-[0_1px_3px_rgba(0,0,0,0.35)] transition-transform duration-200 motion-reduce:transition-none"
+									aria-hidden="true" />
+							</span>
+						</label>
+					</div>
+				</section>
 
-			<motion.div class="min-h-[20rem] sm:min-h-[24rem]" :initial="{ opacity: 0, y: 16 }"
-				:animate="{ opacity: 1, y: 0 }" :transition="{ duration: 0.35, delay: 0.08, ease: [0.22, 1, 0.36, 1] }" />
+				<section>
+					<p class="mb-2.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">
+						Layout
+					</p>
+					<div class="overflow-hidden rounded-lg border border-chalk/10">
+						<label
+							class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-chalk/[0.03]">
+							<span class="text-sm font-semibold text-chalk/90">Consolidate participants panel</span>
+							<input v-model="settings.consolidateParticipantsPanel" type="checkbox" class="peer sr-only" />
+							<span
+								class="relative inline-flex h-6 w-11 shrink-0 rounded-full bg-chalk/[0.08] ring-1 ring-chalk/10 transition-[background-color,box-shadow] duration-200 peer-checked:bg-coral/20 peer-checked:ring-coral/35 peer-focus-visible:ring-2 peer-focus-visible:ring-coral-soft peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-board-raised peer-checked:[&>span]:translate-x-5">
+								<span
+									class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-chalk shadow-[0_1px_3px_rgba(0,0,0,0.35)] transition-transform duration-200 motion-reduce:transition-none"
+									aria-hidden="true" />
+							</span>
+						</label>
+					</div>
+				</section>
+			</motion.div>
 		</motion.div>
 	</motion.div>
 </template>
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
+import type { BoardSettings } from '~/types/board'
+const settings = defineModel<BoardSettings>('settings', { required: true })
 const open = ref(false)
 const onKeydown = (event: KeyboardEvent) => {
 	if (event.key === 'Escape') open.value = false

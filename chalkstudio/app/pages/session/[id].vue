@@ -10,16 +10,18 @@
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" />
-			<BoardUsersPannel v-model:users="users" :main-user="user" @navigate="displayUserLocation($event, users)" />
-			<Settings />
-			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom" />
+			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
+				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
+			<Settings v-model:settings="settings" />
+			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom"
+				v-if="!settings.focusMode" />
 		</div>
 	</ClientOnly>
 </template>
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, BoardUser, Tool } from '~/types/board'
+import type { BoardEvent, BoardUser, Tool, BoardSettings } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
 import { v4 as uuidv4 } from 'uuid'
 const user: Ref<string> = ref(uuidv4().slice(0, 8))
@@ -42,6 +44,16 @@ const Konva = useKonva()
 type VueKonvaComponentRef = {
 	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer
 }
+
+const settings: Ref<BoardSettings> = ref({
+	focusMode: false,
+	consolidateParticipantsPanel: false,
+})
+const { enterFullscreen, exitFullscreen } = useFullscreen()
+watch(() => settings.value.focusMode, (focusMode) => {
+	if (focusMode) enterFullscreen()
+	else exitFullscreen()
+})
 
 const penPanelOpen: Ref<boolean> = ref(false)
 const color: Ref<string> = ref('#f5f0e8')
@@ -159,6 +171,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+	if (settings.value.focusMode) exitFullscreen()
 	window.removeEventListener('resize', setViewportSize)
 	send(JSON.stringify({ type: 'leave', user: user.value }))
 })

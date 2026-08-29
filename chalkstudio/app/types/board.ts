@@ -5,6 +5,11 @@ export type StickyNote = {
 	color: string
 }
 
+export type BoardSettings = {
+	focusMode: boolean
+	consolidateParticipantsPanel: boolean
+}
+
 export type BoardSprite = {
 	user: string
 	x: number

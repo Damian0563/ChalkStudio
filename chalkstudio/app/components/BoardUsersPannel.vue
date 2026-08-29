@@ -1,21 +1,31 @@
 <template>
 	<div class="fixed top-4 right-16 z-10 flex items-start gap-3">
-		<div v-for="[id, boardUser] in visibleUsers" :key="id" class="flex w-14 flex-col items-center gap-1 cursor-pointer"
-			:title="boardUser.name" @click="mainUser === boardUser.name ? null : emits('navigate', boardUser.name)">
-			<span class="h-8 w-8 shrink-0 overflow-hidden rounded-full"
-				:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
-				<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
-			</span>
-			<span class="w-full truncate text-center text-[11px] font-semibold leading-tight text-chalk/80">
-				{{ boardUser.name }}
-			</span>
-		</div>
+		<div v-if="!consolidateParticipantsPanel">
+			<div v-for="[id, boardUser] in visibleUsers" :key="id"
+				class="flex w-14 flex-col items-center gap-1 cursor-pointer" :title="boardUser.name"
+				@click="mainUser === boardUser.name ? null : emits('navigate', boardUser.name)">
+				<span class="h-8 w-8 shrink-0 overflow-hidden rounded-full"
+					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
+					<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
+				</span>
+				<span class="w-full truncate text-center text-[11px] font-semibold leading-tight text-chalk/80">
+					{{ boardUser.name }}
+				</span>
+			</div>
 
-		<button v-if="hiddenCount > 0" type="button" title="Show all users"
-			class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/92 text-xs font-semibold text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
-			:aria-label="`Show all ${users.size} users`" @click="listOpen = true">
-			+{{ hiddenCount }}
-		</button>
+			<button v-if="hiddenCount > 0" type="button" title="Show all users"
+				class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/92 text-xs font-semibold text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
+				:aria-label="`Show all ${users.size} users`" @click="listOpen = true">
+				+{{ hiddenCount }}
+			</button>
+		</div>
+		<div v-else>
+			<button type="button" title="Show all users" @click="listOpen = true"
+				class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/92 text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
+				:aria-label="`Show all ${users.size} users`">
+				<Icon name="lucide:users" class="h-4 w-4 shrink-0" aria-hidden="true" />
+			</button>
+		</div>
 	</div>
 
 	<motion.aside v-if="listOpen"
@@ -43,7 +53,7 @@
 					<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
 				</span>
 				<span class="min-w-0 truncate text-sm font-semibold text-chalk/80"
-					@click="id !== mainUser ? listOpen = false && emits('navigate', boardUser.name) : null">
+					@click="id !== mainUser ? (emits('navigate', boardUser.name), listOpen = false) : null">
 					{{ boardUser.name }}<span v-if="id === mainUser" class="text-chalk/40"> (you)</span>
 				</span>
 			</li>
@@ -53,15 +63,18 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
-import type { BoardUser } from '~/types/board'
+import type { BoardUser, BoardSettings } from '~/types/board'
 import userAvatarUrl from '~/assets/user-avatar.svg'
-defineProps<{
+const props = defineProps<{
 	mainUser: string
+	settings: BoardSettings
 }>()
+
 const emits = defineEmits<{
 	'navigate': [name: string]
 }>()
 const users = defineModel<Map<string, BoardUser>>('users', { required: true })
+const consolidateParticipantsPanel = computed(() => props.settings.consolidateParticipantsPanel)
 const USER_SLOT_WIDTH = 68
 const RIGHT_RESERVED = 116
 const TOOLBAR_HALF_WIDTH = 300

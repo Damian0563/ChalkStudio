@@ -6,7 +6,7 @@
 			<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
 			<div class="flex items-center gap-1 overflow-x-auto px-2 py-1.5 sm:gap-1.5 sm:px-3">
 				<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Tools">
-					<button ref="penButtonRef" type="button"
+					<button ref="penButtonRef" type="button" title="Pen"
 						class="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="tool === 'pen'
 							? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
 							: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" aria-label="Pen" :aria-pressed="tool === 'pen'"
@@ -16,15 +16,15 @@
 						<span class="absolute bottom-1 h-0.5 w-4 rounded-full transition-colors"
 							:style="tool === 'pen' ? { backgroundColor: color } : undefined" aria-hidden="true" />
 					</button>
-					<button ref="eraserButtonRef" type="button"
+					<button ref="eraserButtonRef" type="button" title="Eraser"
 						class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="tool === 'eraser'
-						? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
-						: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" aria-label="Eraser"
+							? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
+							: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" aria-label="Eraser"
 						:aria-pressed="tool === 'eraser'" :aria-expanded="penPanelOpen && tool === 'eraser'" aria-haspopup="true"
 						@click="selectTool('eraser')" @dblclick="openPanel('eraser')">
 						<Icon name="lucide:eraser" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
-					<button ref="stickyButtonRef" type="button"
+					<button ref="stickyButtonRef" type="button" title="Sticky notes"
 						class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="stickyPanelOpen
 							? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
 							: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" aria-label="Sticky notes"
@@ -35,20 +35,20 @@
 					<button type="button" class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="tool === 'pan'
 						? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
 						: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" aria-label="Pan" :aria-pressed="tool === 'pan'"
-						@click="selectTool('pan')">
+						@click="selectTool('pan')" title="Pan">
 						<Icon name="lucide:hand" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
 				</div>
 				<div class="mx-1 h-6 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
 				<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="History">
-					<button type="button"
+					<button type="button" title="Undo"
 						class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 						aria-label="Undo">
 						<Icon name="lucide:undo-2" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
 					<button type="button"
 						class="flex h-9 w-9 items-center justify-center rounded-lg text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
-						aria-label="Redo">
+						aria-label="Redo" title="Redo">
 						<Icon name="lucide:redo-2" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
 				</div>

@@ -59,6 +59,8 @@ export default defineWebSocketHandler({
 				users.set(event.user as string, {
 					name: event.user as string,
 					color: peer.context.color as string,
+					x: 0,
+					y: 0,
 				})
 			} else if (event.type === 'leave') {
 				removeUser(room, event.user as string)

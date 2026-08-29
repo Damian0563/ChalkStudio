@@ -1,7 +1,7 @@
 <template>
 	<div class="fixed top-4 right-16 z-10 flex items-start gap-3">
-		<div v-for="[id, boardUser] in visibleUsers" :key="id" class="flex w-14 flex-col items-center gap-1"
-			:title="boardUser.name">
+		<div v-for="[id, boardUser] in visibleUsers" :key="id" class="flex w-14 flex-col items-center gap-1 cursor-pointer"
+			:title="boardUser.name" @click="mainUser === boardUser.name ? null : emits('navigate', boardUser.name)">
 			<span class="h-8 w-8 shrink-0 overflow-hidden rounded-full"
 				:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
 				<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
@@ -37,12 +37,13 @@
 
 		<ul class="flex-1 overflow-y-auto px-3 py-2">
 			<li v-for="[id, boardUser] in users" :key="id"
-				class="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-chalk/[0.04]">
+				class="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-chalk/[0.04] cursor-pointer">
 				<span class="h-8 w-8 shrink-0 overflow-hidden rounded-full"
 					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
 					<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
 				</span>
-				<span class="min-w-0 truncate text-sm font-semibold text-chalk/80">
+				<span class="min-w-0 truncate text-sm font-semibold text-chalk/80"
+					@click="id !== mainUser ? listOpen = false && emits('navigate', boardUser.name) : null">
 					{{ boardUser.name }}<span v-if="id === mainUser" class="text-chalk/40"> (you)</span>
 				</span>
 			</li>
@@ -56,6 +57,9 @@ import type { BoardUser } from '~/types/board'
 import userAvatarUrl from '~/assets/user-avatar.svg'
 defineProps<{
 	mainUser: string
+}>()
+const emits = defineEmits<{
+	'navigate': [name: string]
 }>()
 const users = defineModel<Map<string, BoardUser>>('users', { required: true })
 const USER_SLOT_WIDTH = 68

@@ -10,7 +10,7 @@
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" />
-			<BoardUsersPannel v-model:users="users" :main-user="user" />
+			<BoardUsersPannel v-model:users="users" :main-user="user" @navigate="displayUserLocation($event, users)" />
 			<Settings />
 			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom" />
 		</div>
@@ -67,7 +67,11 @@ const getBoardPointer = () => {
 	if (!stage || !layer || !pos) return undefined
 	return layer.getAbsoluteTransform().copy().invert().point(pos)
 }
-const { popUpSprite } = useBoardPopUp({ getLayer })
+const { popUpSprite, displayUserLocation } = useBoardPopUp({
+	getLayer,
+	getStage,
+	getViewportSize: () => ({ width: viewportWidth.value, height: viewportHeight.value }),
+})
 const zoom: Ref<number> = ref(1)
 const zoomPercent = computed(() => Math.round(zoom.value * 100))
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
@@ -122,20 +126,21 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				users.value = roster
 			}
 		} catch (_) {
-			quickNotice.value = { message: 'Error parsing message', type: 'error' }
+			quickNotice.value = { message: 'Error parsing remote event', type: 'error' }
 		} finally {
 			//DEBUG PURPOSES: mock roster to preview overflow behaviour
-			users.value = new Map<string, BoardUser>([
-				[user.value, { name: user.value, color: color.value }],
-				['mock-1', { name: 'Alice', color: '#e07a5f' }],
-				['mock-2', { name: 'Bartholomew-the-Long-Named', color: '#81b29a' }],
-				['mock-3', { name: 'Charlie', color: '#f2cc8f' }],
-				['mock-4', { name: 'Dominika', color: '#8ecae6' }],
-				['mock-5', { name: 'Edgar', color: '#c77dff' }],
-				['mock-6', { name: 'Fiona', color: '#ffb703' }],
-				['mock-7', { name: 'Grzegorz', color: '#90be6d' }],
-				['mock-8', { name: 'Helena', color: '#f28482' }],
-			])
+			// MOCK USERS
+			// users.value = new Map<string, BoardUser>([
+			// 	[user.value, { name: user.value, color: color.value }],
+			// 	['mock-1', { name: 'Alice', color: '#e07a5f' }],
+			// 	['mock-2', { name: 'Bartholomew-the-Long-Named', color: '#81b29a', x: 100, y: 100 }],
+			// 	['mock-3', { name: 'Charlie', color: '#f2cc8f' }],
+			// 	['mock-4', { name: 'Dominika', color: '#8ecae6' }],
+			// 	['mock-5', { name: 'Edgar', color: '#c77dff' }],
+			// 	['mock-6', { name: 'Fiona', color: '#ffb703' }],
+			// 	['mock-7', { name: 'Grzegorz', color: '#90be6d' }],
+			// 	['mock-8', { name: 'Helena', color: '#f28482' }],
+			// ])
 		}
 	},
 })

@@ -236,7 +236,7 @@ const handleMouseMove = () => {
 
 const handleMouseUp = () => {
 	const pos = getBoardPointer()
-	if (tool.value === "pan" && pos?.x && pos?.y) {
+	if (tool.value === "pan" && pos) {
 		send(JSON.stringify({ type: 'pan', user: user.value, data: { x: pos.x, y: pos.y } }))
 		return
 	}

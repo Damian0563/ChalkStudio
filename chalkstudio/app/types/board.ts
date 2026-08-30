@@ -8,6 +8,7 @@ export type StickyNote = {
 export type BoardSettings = {
 	focusMode: boolean
 	consolidateParticipantsPanel: boolean
+	showSprites: boolean
 }
 
 export type BoardSprite = {

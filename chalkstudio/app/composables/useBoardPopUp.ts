@@ -4,7 +4,7 @@ import userAvatarUrl from '~/assets/user-avatar.svg'
 
 const CHALK = '#f5f0e8'
 const BOARD = '#1a2332'
-const POP_HOLD_MS = 1400
+const POP_HOLD_MS = 1000
 
 type UseBoardPopUpOptions = {
 	getLayer: () => KonvaTypes.Layer | undefined

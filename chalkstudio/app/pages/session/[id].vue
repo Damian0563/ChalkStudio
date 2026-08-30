@@ -48,8 +48,9 @@ type VueKonvaComponentRef = {
 const settings: Ref<BoardSettings> = ref({
 	focusMode: false,
 	consolidateParticipantsPanel: false,
+	showSprites: true,
 })
-const { enterFullscreen, exitFullscreen } = useFullscreen()
+const { enterFullscreen, exitFullscreen, syncFocusModeWithFullscreen } = useFullscreen(settings)
 watch(() => settings.value.focusMode, (focusMode) => {
 	if (focusMode) enterFullscreen()
 	else exitFullscreen()
@@ -87,10 +88,12 @@ const { popUpSprite, displayUserLocation } = useBoardPopUp({
 const zoom: Ref<number> = ref(1)
 const zoomPercent = computed(() => Math.round(zoom.value * 100))
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
-useKeyboard({ zoom: { increaseZoom, decreaseZoom } })
+useKeyboard({
+	zoom: { increaseZoom, decreaseZoom },
+	settings,
+})
 const remoteLines = new Map<string, KonvaTypes.Line>()
 const userSpritePops = new Map<string, number>()
-const SPRITEPOP_INTERVAL: number = 1000
 const quickNotice: Ref<QuickNotice | undefined> = ref(undefined)
 
 const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
@@ -102,9 +105,9 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				const points = event.data?.attrs?.points
 				const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
 				const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
-				if (!isEraser && points && points.length >= 2) {
+				if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
 					const lastPop = userSpritePops.get(event.user)
-					if (lastPop === undefined || lastPop + SPRITEPOP_INTERVAL < Date.now()) {
+					if (lastPop === undefined || lastPop + 900 < Date.now()) {
 						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
 						userSpritePops.set(event.user, Date.now())
 					}
@@ -136,6 +139,14 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 					roster.set(user.value, users.value.get(user.value) ?? { name: user.value, color: color.value })
 				}
 				users.value = roster
+			} else if (event.type === 'pan') {
+				const user = event.user
+				const x = event.data.x
+				const y = event.data.y
+				if (users.value.has(user)) {
+					users.value.get(user)!.x = x
+					users.value.get(user)!.y = y
+				}
 			}
 		} catch (_) {
 			quickNotice.value = { message: 'Error parsing remote event', type: 'error' }
@@ -166,6 +177,7 @@ onMounted(() => {
 	loading.value = true
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
+	document.addEventListener('fullscreenchange', syncFocusModeWithFullscreen)
 	send(JSON.stringify({ type: 'join', user: user.value }))
 	loading.value = false
 })
@@ -173,6 +185,7 @@ onMounted(() => {
 onUnmounted(() => {
 	if (settings.value.focusMode) exitFullscreen()
 	window.removeEventListener('resize', setViewportSize)
+	document.removeEventListener('fullscreenchange', syncFocusModeWithFullscreen)
 	send(JSON.stringify({ type: 'leave', user: user.value }))
 })
 
@@ -181,11 +194,11 @@ const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 }
 
 const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
+	if (e.evt.button === 2) return
 	if (penPanelOpen.value) {
 		penPanelOpen.value = false
 		return
 	}
-	if (e.evt.button === 2 || tool.value === "pan") return
 	e.evt.preventDefault()
 	const layer = getLayer()
 	const pos = getBoardPointer()
@@ -222,6 +235,11 @@ const handleMouseMove = () => {
 }
 
 const handleMouseUp = () => {
+	const pos = getBoardPointer()
+	if (tool.value === "pan" && pos) {
+		send(JSON.stringify({ type: 'pan', user: user.value, data: { x: pos.x, y: pos.y } }))
+		return
+	}
 	if (!currentLine.value) return
 	isDrawing.value = false
 	send(JSON.stringify({ type: 'drawEnd', user: user.value, data: currentLine.value.toObject() }))

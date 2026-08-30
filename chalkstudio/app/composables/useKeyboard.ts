@@ -1,3 +1,29 @@
+import type { BoardSettings } from '~/types/board'
+
+export type KeyboardShortcut = {
+	description: string
+	keys: string[]
+}
+
+export const keyboardShortcuts: KeyboardShortcut[] = [
+	{
+		description: 'Toggle focus mode',
+		keys: ['F11'],
+	},
+	{
+		description: 'Zoom in',
+		keys: ['Ctrl / ⌘', '+'],
+	},
+	{
+		description: 'Zoom out',
+		keys: ['Ctrl / ⌘', '−'],
+	},
+	{
+		description: 'Close open panel or dialog',
+		keys: ['Esc'],
+	},
+]
+
 type KeyboardZoomHandlers = {
 	increaseZoom: () => void
 	decreaseZoom: () => void
@@ -5,26 +31,28 @@ type KeyboardZoomHandlers = {
 
 export type UseKeyboardOptions = {
 	zoom: KeyboardZoomHandlers
+	settings: Ref<BoardSettings>
 }
 
-const handleZoomKeys = (e: KeyboardEvent, zoom: KeyboardZoomHandlers): boolean => {
-	if (!(e.ctrlKey || e.metaKey)) return false
-	if (e.code === 'Equal' || e.code === 'NumpadAdd') {
-		e.preventDefault()
-		zoom.increaseZoom()
-		return true
-	}
-	if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
-		e.preventDefault()
-		zoom.decreaseZoom()
-		return true
-	}
-	return false
-}
+
 
 export function useKeyboard(options: UseKeyboardOptions) {
-	const keydownEvent = (e: KeyboardEvent) => {
-		if (handleZoomKeys(e, options.zoom)) return
+	const keydownEvent = (e: KeyboardEvent): void => {
+		const { zoom, settings } = options
+		if (e.code === 'F11') {
+			e.preventDefault()
+			e.stopImmediatePropagation()
+			settings.value.focusMode = !settings.value.focusMode
+			return
+		}
+		if (!(e.ctrlKey || e.metaKey)) return
+		if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+			e.preventDefault()
+			zoom.increaseZoom()
+		} else if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+			e.preventDefault()
+			zoom.decreaseZoom()
+		}
 	}
 
 	onMounted(() => {

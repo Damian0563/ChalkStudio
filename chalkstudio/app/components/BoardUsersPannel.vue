@@ -1,6 +1,6 @@
 <template>
 	<div class="fixed top-4 right-16 z-10 flex items-start gap-3">
-		<div v-if="!consolidateParticipantsPanel">
+		<div v-if="!consolidateParticipantsPanel" class="flex items-start gap-3">
 			<div v-for="[id, boardUser] in visibleUsers" :key="id"
 				class="flex w-14 flex-col items-center gap-1 cursor-pointer" :title="boardUser.name"
 				@click="mainUser === boardUser.name ? null : emits('navigate', boardUser.name)">

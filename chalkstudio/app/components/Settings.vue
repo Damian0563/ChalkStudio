@@ -46,6 +46,19 @@
 							</span>
 						</label>
 					</div>
+					<div class="overflow-hidden rounded-lg border border-chalk/10 mt-2">
+						<label
+							class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-chalk/[0.03]">
+							<span class="text-sm font-semibold text-chalk/90">Show user avatars on remote events</span>
+							<input v-model="settings.showSprites" type="checkbox" class="peer sr-only" />
+							<span
+								class="relative inline-flex h-6 w-11 shrink-0 rounded-full bg-chalk/[0.08] ring-1 ring-chalk/10 transition-[background-color,box-shadow] duration-200 peer-checked:bg-coral/20 peer-checked:ring-coral/35 peer-focus-visible:ring-2 peer-focus-visible:ring-coral-soft peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-board-raised peer-checked:[&>span]:translate-x-5">
+								<span
+									class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-chalk shadow-[0_1px_3px_rgba(0,0,0,0.35)] transition-transform duration-200 motion-reduce:transition-none"
+									aria-hidden="true" />
+							</span>
+						</label>
+					</div>
 				</section>
 
 				<section>
@@ -64,6 +77,26 @@
 									aria-hidden="true" />
 							</span>
 						</label>
+					</div>
+				</section>
+
+				<section>
+					<p class="mb-2.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">
+						Accessibility
+					</p>
+					<div class="overflow-hidden rounded-lg border border-chalk/10">
+						<ul>
+							<li v-for="shortcut in keyboardShortcuts" :key="shortcut.description"
+								class="flex items-center justify-between gap-4 border-b border-chalk/10 px-4 py-3.5 last:border-b-0">
+								<span class="text-sm font-semibold text-chalk/90">{{ shortcut.description }}</span>
+								<span class="flex shrink-0 items-center gap-1">
+									<kbd v-for="(key, index) in shortcut.keys" :key="`${shortcut.description}-${index}`"
+										class="rounded border border-chalk/10 bg-chalk/[0.06] px-1.5 py-0.5 font-mono text-[0.6875rem] font-semibold text-chalk/70">
+										{{ key }}
+									</kbd>
+								</span>
+							</li>
+						</ul>
 					</div>
 				</section>
 			</motion.div>

@@ -9,12 +9,14 @@
 				<v-layer ref="layerRef" />
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
-				v-model:tool="tool" />
+				v-model:tool="tool" @add-note="positionNote($event)" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
 			<Settings v-model:settings="settings" />
 			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom"
 				v-if="!settings.focusMode" />
+			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
+				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
 		</div>
 	</ClientOnly>
 </template>
@@ -168,6 +170,9 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	},
 })
 
+const { isSetupStickyNote, NOTE_WIDTH, pendingNote, positionNote, placeNote, cancelNotePlacement } =
+	useStickyNotes({ getLayer, getStage, send })
+
 const setViewportSize = () => {
 	viewportWidth.value = window.innerWidth
 	viewportHeight.value = window.innerHeight
@@ -194,7 +199,7 @@ const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 }
 
 const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
-	if (e.evt.button === 2) return
+	if (e.evt.button === 2 || tool.value === "pan") return
 	if (penPanelOpen.value) {
 		penPanelOpen.value = false
 		return

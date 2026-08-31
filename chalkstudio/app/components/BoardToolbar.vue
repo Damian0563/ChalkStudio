@@ -144,7 +144,7 @@
 									Cancel
 								</button>
 								<button type="submit" :disabled="!isValid"
-									class="flex items-center gap-1.5 rounded-lg bg-chalk/10 px-4 py-2 text-sm font-medium text-chalk ring-1 ring-chalk/15 transition-colors enabled:hover:bg-chalk/15 disabled:cursor-not-allowed disabled:opacity-40">
+									class="flex items-center gap-1.5 rounded-lg backdrop-blur-sm/10 px-4 py-2 text-sm font-medium text-chalk ring-1 ring-chalk/15 transition-colors enabled:hover:bg-chalk/15 disabled:cursor-not-allowed disabled:opacity-40">
 									<Icon name="lucide:plus" class="h-4 w-4 shrink-0" aria-hidden="true" />
 									Add to board
 								</button>
@@ -167,7 +167,7 @@ const penButtonRef = ref<HTMLButtonElement>()
 const eraserButtonRef = ref<HTMLButtonElement>()
 const stickyButtonRef = ref<HTMLButtonElement>()
 const { chalks, strokes } = useStrokeConfig()
-const { papers, maxLength, noteText, noteColor, isValid, submit } = useStickyNoteForm()
+const { papers, maxLength, noteText, noteColor, isValid, submit } = useStickyNotes()
 
 const emit = defineEmits<{
 	addNote: [note: StickyNote]

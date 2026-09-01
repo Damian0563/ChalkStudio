@@ -17,6 +17,8 @@
 				v-if="!settings.focusMode" />
 			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
 				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
+			<StickyNoteEditor v-model:is-editing="isEditing" v-model:text="editText" :color="editColor"
+				:max-length="maxLength" @pick-color="setNoteColor($event, user)" @close="cancelNoteEdit" />
 		</div>
 	</ClientOnly>
 </template>
@@ -110,6 +112,7 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
 					const lastPop = userSpritePops.get(event.user)
 					if (lastPop === undefined || lastPop + 900 < Date.now()) {
+						if (event?.color) localStorage.setItem('spriteColor', event.color)
 						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
 						userSpritePops.set(event.user, Date.now())
 					}
@@ -140,6 +143,10 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				if (!roster.has(user.value)) {
 					roster.set(user.value, users.value.get(user.value) ?? { name: user.value, color: color.value })
 				}
+				if (event.user === user.value) {
+					const spriteColor = event.color ?? roster.get(user.value)?.color
+					if (spriteColor) localStorage.setItem('spriteColor', spriteColor)
+				}
 				users.value = roster
 			} else if (event.type === 'pan') {
 				const user = event.user
@@ -149,8 +156,31 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 					users.value.get(user)!.x = x
 					users.value.get(user)!.y = y
 				}
+			} else if (event.type === 'stickyNote-new') {
+				const note = Konva.Node.create(event.data) as KonvaTypes.Group
+				const layer = getLayer()
+				if (!layer || !note) return
+				attachStickyNoteHandlers(note)
+				users.value.set(event.user, {
+					name: event.user,
+					x: note.attrs.x,
+					y: note.attrs.y,
+					color: event.color || users.value.get(event.user)?.color || color.value,
+				})
+				layer.add(note)
+				layer.batchDraw()
+			} else if (event.type === 'stickyNote-edit') {
+				const layer = getLayer()
+				const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
+				if (!layer || !group) return
+				if (typeof event.data?.text === 'string') applyNoteText(group, event.data.text)
+				if (typeof event.data?.color === 'string') {
+					(group.findOne('Rect') as KonvaTypes.Rect | undefined)?.fill(event.data.color)
+				}
+				layer.batchDraw()
 			}
-		} catch (_) {
+		} catch (e) {
+			console.error(e)
 			quickNotice.value = { message: 'Error parsing remote event', type: 'error' }
 		} finally {
 			//DEBUG PURPOSES: mock roster to preview overflow behaviour
@@ -170,8 +200,10 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	},
 })
 
-const { isSetupStickyNote, NOTE_WIDTH, pendingNote, positionNote, placeNote, cancelNotePlacement } =
+const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, editText, editColor, updateNoteText, setNoteColor, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteText, isStickyNoteTarget } =
 	useStickyNotes({ getLayer, getStage, send })
+
+watch(editText, () => updateNoteText(user.value))
 
 const setViewportSize = () => {
 	viewportWidth.value = window.innerWidth
@@ -183,7 +215,7 @@ onMounted(() => {
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
 	document.addEventListener('fullscreenchange', syncFocusModeWithFullscreen)
-	send(JSON.stringify({ type: 'join', user: user.value }))
+	send(JSON.stringify({ type: 'join', user: user.value, color: localStorage.getItem('spriteColor') }))
 	loading.value = false
 })
 
@@ -200,6 +232,11 @@ const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 
 const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 	if (e.evt.button === 2 || tool.value === "pan") return
+	if (isStickyNoteTarget(e.target, getStage())) return
+	if (isEditing.value) {
+		cancelNoteEdit()
+		return
+	}
 	if (penPanelOpen.value) {
 		penPanelOpen.value = false
 		return

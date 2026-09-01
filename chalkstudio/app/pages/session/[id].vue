@@ -17,8 +17,8 @@
 				v-if="!settings.focusMode" />
 			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
 				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
-			<StickyNoteEditor v-model:is-editing="isEditing" v-model:text="editText" :color="editColor"
-				:max-length="maxLength" @pick-color="setNoteColor($event, user)" @close="cancelNoteEdit" />
+			<StickyNoteEditor v-model:is-editing="isEditing" v-model:note-config="noteConfig" :max-length="maxLength"
+				@pick-color="setNoteColor($event, user)" @close="cancelNoteEdit" />
 		</div>
 	</ClientOnly>
 </template>
@@ -112,7 +112,6 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
 					const lastPop = userSpritePops.get(event.user)
 					if (lastPop === undefined || lastPop + 900 < Date.now()) {
-						if (event?.color) localStorage.setItem('spriteColor', event.color)
 						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
 						userSpritePops.set(event.user, Date.now())
 					}
@@ -173,10 +172,7 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				const layer = getLayer()
 				const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
 				if (!layer || !group) return
-				if (typeof event.data?.text === 'string') applyNoteText(group, event.data.text)
-				if (typeof event.data?.color === 'string') {
-					(group.findOne('Rect') as KonvaTypes.Rect | undefined)?.fill(event.data.color)
-				}
+				applyNoteEdit(group, event.data)
 				layer.batchDraw()
 			}
 		} catch (e) {
@@ -200,10 +196,10 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 	},
 })
 
-const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, editText, editColor, updateNoteText, setNoteColor, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteText, isStickyNoteTarget } =
+const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, setNoteColor, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
 	useStickyNotes({ getLayer, getStage, send })
 
-watch(editText, () => updateNoteText(user.value))
+watch(noteConfig, () => updateNote(user.value), { deep: true })
 
 const setViewportSize = () => {
 	viewportWidth.value = window.innerWidth

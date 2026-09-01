@@ -9,7 +9,6 @@ function getRoomName(peer: Peer): string {
 	}
 	return room
 }
-
 const spriteColors: string[] = [
 	'#22c55e', // green
 	'#3b82f6', // blue
@@ -22,7 +21,6 @@ const spriteColors: string[] = [
 	'#84cc16', // lime
 ]
 const roomUsers = new Map<string, Map<string, BoardUser>>()
-
 function getRoomUsers(room: string): Map<string, BoardUser> {
 	let users = roomUsers.get(room)
 	if (!users) {
@@ -54,8 +52,18 @@ export default defineWebSocketHandler({
 			const room = peer.context?.room as string
 			const users = getRoomUsers(room)
 			if (event.type === 'join') {
+				const takenColors = new Set<string>()
+				peer.context.color = spriteColors[Math.floor(Math.random() * spriteColors.length)]
+				for (const user of users.values()) {
+					takenColors.add(user.color)
+				}
+				const availableColors: string[] = spriteColors.filter((color) => !takenColors.has(color))
+				if (!availableColors.includes(event.color as string) && takenColors.has(event.color as string)) {
+					peer.context.color = event.color as string
+				} else {
+					peer.context.color = availableColors.length > 0 ? availableColors[Math.floor(Math.random() * availableColors.length)] : "#000000"
+				}
 				peer.context.user = event.user as string
-				peer.context.color = spriteColors[users.size % spriteColors.length]
 				users.set(event.user as string, {
 					name: event.user as string,
 					color: peer.context.color as string,

@@ -21,16 +21,57 @@
 					<span class="font-semibold text-chalk">Esc</span> to finish
 				</p>
 				<p class="mt-1.5 text-[0.6rem] tabular-nums text-chalk-faint/70" aria-hidden="true">
-					{{ text.length }}/{{ maxLength }}
+					{{ noteConfig.text.length }}/{{ maxLength }}
 				</p>
 
 				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Paper</p>
 				<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Note color">
 					<button v-for="paper in papers" :key="paper.value" type="button"
 						class="h-8 w-8 rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-						:class="color === paper.value ? 'ring-2 ring-chalk/70 ring-offset-1 ring-offset-board-raised' : 'ring-1 ring-chalk/10'"
-						:style="{ backgroundColor: paper.value }" :aria-label="paper.name" :aria-pressed="color === paper.value"
-						@click="emit('pickColor', paper.value)">
+						:class="noteConfig.bgColor === paper.value ? 'ring-2 ring-chalk/70 ring-offset-1 ring-offset-board-raised' : 'ring-1 ring-chalk/10'"
+						:style="{ backgroundColor: paper.value }" :aria-label="paper.name"
+						:aria-pressed="noteConfig.bgColor === paper.value" @click="emit('pickColor', paper.value)">
+					</button>
+				</div>
+
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Ink</p>
+				<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Text color">
+					<button v-for="ink in availableTextColors" :key="ink.value" type="button"
+						class="h-6 w-6 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+						:class="noteConfig.textColor === ink.value ? 'ring-2 ring-chalk/70 ring-offset-1 ring-offset-board-raised' : 'ring-1 ring-chalk/15'"
+						:style="{ backgroundColor: ink.value }" :aria-label="ink.name"
+						:aria-pressed="noteConfig.textColor === ink.value" @click="noteConfig.textColor = ink.value">
+					</button>
+				</div>
+
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Font</p>
+				<div class="grid grid-cols-4 gap-1.5" role="group" aria-label="Font">
+					<button v-for="font in availableFonts" :key="font.value" type="button"
+						class="flex h-9 items-center justify-center rounded-lg text-sm transition-colors" :class="noteConfig.font === font.value
+							? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
+							: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" :style="{ fontFamily: font.value }"
+						:aria-label="font.name" :aria-pressed="noteConfig.font === font.value"
+						@click="noteConfig.font = font.value">
+						Ag
+					</button>
+				</div>
+
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Size</p>
+				<div class="flex h-9 items-center rounded-lg ring-1 ring-chalk/10" role="group" aria-label="Font size">
+					<button type="button"
+						class="flex h-full w-9 items-center justify-center rounded-l-lg text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+						:disabled="noteConfig.fontSize <= availableFontSizes[0]!" aria-label="Decrease font size"
+						@click="stepStickyNoteFontSize(noteConfig, -1)">
+						<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+					</button>
+					<span class="flex-1 text-center text-sm tabular-nums text-chalk" aria-live="polite">
+						{{ noteConfig.fontSize }}
+					</span>
+					<button type="button"
+						class="flex h-full w-9 items-center justify-center rounded-r-lg text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+						:disabled="noteConfig.fontSize >= availableFontSizes[availableFontSizes.length - 1]!"
+						aria-label="Increase font size" @click="stepStickyNoteFontSize(noteConfig, 1)">
+						<Icon name="lucide:plus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 					</button>
 				</div>
 			</div>
@@ -39,13 +80,12 @@
 </template>
 
 <script setup lang="ts">
-import { STICKY_PAPERS } from '~/composables/useStickyNotes'
-
+import type { StickyNote } from '~/types/board'
+const { papers, availableTextColors, availableFonts, availableFontSizes, stepStickyNoteFontSize } = useStickyNotes()
 const isEditing = defineModel<boolean>('isEditing', { required: true })
-const text = defineModel<string>('text', { required: true })
+const noteConfig = defineModel<StickyNote>('noteConfig', { required: true })
 
 const props = defineProps<{
-	color: string
 	maxLength: number
 }>()
 
@@ -54,7 +94,7 @@ const emit = defineEmits<{
 	close: []
 }>()
 
-const papers = STICKY_PAPERS
+
 const onKeydown = (e: KeyboardEvent) => {
 	if (e.key === 'Escape') {
 		e.preventDefault()
@@ -63,11 +103,11 @@ const onKeydown = (e: KeyboardEvent) => {
 	}
 	if (e.metaKey || e.ctrlKey || e.altKey) return
 	if (e.key === 'Backspace') {
-		text.value = text.value.slice(0, -1)
+		noteConfig.value.text = noteConfig.value.text.slice(0, -1)
 	} else if (e.key === 'Enter') {
-		if (text.value.length < props.maxLength) text.value += '\n'
+		if (noteConfig.value.text.length < props.maxLength) noteConfig.value.text += '\n'
 	} else if (e.key.length === 1) {
-		if (text.value.length < props.maxLength) text.value += e.key
+		if (noteConfig.value.text.length < props.maxLength) noteConfig.value.text += e.key
 	} else {
 		return
 	}

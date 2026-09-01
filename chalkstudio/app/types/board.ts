@@ -2,7 +2,10 @@ export type Tool = 'pen' | 'eraser' | 'pan'
 
 export type StickyNote = {
 	text: string
-	color: string
+	font: string
+	fontSize: number
+	textColor: string
+	bgColor: string
 }
 
 export type BoardSettings = {

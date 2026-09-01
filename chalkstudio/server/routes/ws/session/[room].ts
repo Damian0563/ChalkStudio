@@ -58,7 +58,7 @@ export default defineWebSocketHandler({
 					takenColors.add(user.color)
 				}
 				const availableColors: string[] = spriteColors.filter((color) => !takenColors.has(color))
-				if (!availableColors.includes(event.color as string) && takenColors.has(event.color as string)) {
+				if (availableColors.includes(event.color as string) && !takenColors.has(event.color as string)) {
 					peer.context.color = event.color as string
 				} else {
 					peer.context.color = availableColors.length > 0 ? availableColors[Math.floor(Math.random() * availableColors.length)] : "#000000"

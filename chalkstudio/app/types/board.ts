@@ -5,6 +5,10 @@ export type StickyNote = {
 	font: string
 	fontSize: number
 	textColor: string
+	fontWeight: {
+		label: string
+		value: number
+	}
 	bgColor: string
 }
 

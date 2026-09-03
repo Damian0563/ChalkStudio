@@ -16,10 +16,11 @@
 				minHeight: `${noteMinHeight}px`,
 				backgroundColor: note.bgColor,
 			}" style="border-radius: 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);" @pointerdown="startDrag">
-				<p class="whitespace-pre-wrap break-words p-3 font-semibold" :style="{
+				<p class="whitespace-pre-wrap break-words p-3" :style="{
 					color: note.textColor,
 					fontFamily: note.font,
 					fontSize: `${note.fontSize}px`,
+					fontWeight: note.fontWeight.value,
 					lineHeight: 1,
 				}">
 					{{ note.text }}

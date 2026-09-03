@@ -56,21 +56,48 @@
 					</button>
 				</div>
 
-				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Size</p>
-				<div class="flex h-9 items-center rounded-lg ring-1 ring-chalk/10" role="group" aria-label="Font size">
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Weight</p>
+				<div class="flex h-9 items-center overflow-hidden rounded-lg ring-1 ring-chalk/10" role="group"
+					aria-label="Font weight">
 					<button type="button"
-						class="flex h-full w-9 items-center justify-center rounded-l-lg text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
-						:disabled="noteConfig.fontSize <= availableFontSizes[0]!" aria-label="Decrease font size"
-						@click="stepStickyNoteFontSize(noteConfig, -1)">
+						class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+						:disabled="noteConfig.fontWeight.value <= availableWeights[0]!.value" aria-label="Decrease font weight"
+						@click="stepStickyNote(noteConfig, 'fontWeight', -1)">
 						<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 					</button>
+					<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
+					<span
+						class="min-w-0 flex-1 truncate px-2 text-center text-xs leading-none text-chalk"
+						:style="{ fontFamily: noteConfig.font, fontWeight: noteConfig.fontWeight.value }"
+						aria-live="polite">
+						{{ noteConfig.fontWeight.label }}
+					</span>
+					<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
+					<button type="button"
+						class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+						:disabled="noteConfig.fontWeight.value >= availableWeights[availableWeights.length - 1]!.value"
+						aria-label="Increase font weight" @click="stepStickyNote(noteConfig, 'fontWeight', 1)">
+						<Icon name="lucide:plus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+					</button>
+				</div>
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Size</p>
+				<div class="flex h-9 items-center overflow-hidden rounded-lg ring-1 ring-chalk/10" role="group"
+					aria-label="Font size">
+					<button type="button"
+						class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+						:disabled="noteConfig.fontSize <= availableFontSizes[0]!" aria-label="Decrease font size"
+						@click="stepStickyNote(noteConfig, 'fontSize', -1)">
+						<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+					</button>
+					<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
 					<span class="flex-1 text-center text-sm tabular-nums text-chalk" aria-live="polite">
 						{{ noteConfig.fontSize }}
 					</span>
+					<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
 					<button type="button"
-						class="flex h-full w-9 items-center justify-center rounded-r-lg text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+						class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
 						:disabled="noteConfig.fontSize >= availableFontSizes[availableFontSizes.length - 1]!"
-						aria-label="Increase font size" @click="stepStickyNoteFontSize(noteConfig, 1)">
+						aria-label="Increase font size" @click="stepStickyNote(noteConfig, 'fontSize', 1)">
 						<Icon name="lucide:plus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 					</button>
 				</div>
@@ -81,7 +108,7 @@
 
 <script setup lang="ts">
 import type { StickyNote } from '~/types/board'
-const { papers, availableTextColors, availableFonts, availableFontSizes, stepStickyNoteFontSize } = useStickyNotes()
+const { papers, availableTextColors, availableFonts, availableFontSizes, availableWeights, stepStickyNote } = useStickyNotes()
 const isEditing = defineModel<boolean>('isEditing', { required: true })
 const noteConfig = defineModel<StickyNote>('noteConfig', { required: true })
 

@@ -42,7 +42,7 @@ export default defineNuxtConfig({
 				{ rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
 				{
 					rel: 'stylesheet',
-					href: 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600&family=Caveat:wght@500;600&display=swap',
+					href: 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Source+Sans+3:wght@300;400;500;600;700;800&display=swap',
 				},
 				{
 					rel: 'icon',

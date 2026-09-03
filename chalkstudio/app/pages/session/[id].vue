@@ -172,8 +172,7 @@ const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
 				const layer = getLayer()
 				const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
 				if (!layer || !group) return
-				applyNoteEdit(group, event.data)
-				layer.batchDraw()
+				void applyNoteEdit(group, event.data).then(() => layer.batchDraw())
 			}
 		} catch (e) {
 			console.error(e)

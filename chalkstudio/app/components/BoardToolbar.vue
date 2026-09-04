@@ -127,6 +127,7 @@
 										color: noteConfig.textColor,
 										fontFamily: noteConfig.font,
 										fontSize: `${Math.min(noteConfig.fontSize, 24)}px`,
+										fontWeight: noteConfig.fontWeight.value,
 									}" aria-label="Note text" />
 								<span class="pointer-events-none absolute bottom-2.5 right-2.5 text-[0.6rem] tabular-nums text-board/40"
 									aria-hidden="true">{{ noteConfig.text.length }}/{{ maxLength }}</span>
@@ -152,37 +153,64 @@
 								</button>
 							</div>
 
+							<p class="mb-1.5 mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Font</p>
+							<div class="grid grid-cols-4 gap-1.5" role="group" aria-label="Font">
+								<button v-for="font in availableFonts" :key="font.value" type="button"
+									class="flex h-9 items-center justify-center rounded-lg text-sm transition-colors" :class="noteConfig.font === font.value
+										? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
+										: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" :style="{ fontFamily: font.value }"
+									:aria-label="font.name" :aria-pressed="noteConfig.font === font.value"
+									@click="noteConfig.font = font.value">
+									Ag
+								</button>
+							</div>
+
 							<div class="mt-3 flex items-end gap-3">
 								<div class="min-w-0 flex-1">
-									<p class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Font</p>
-									<div class="grid grid-cols-4 gap-1.5" role="group" aria-label="Font">
-										<button v-for="font in availableFonts" :key="font.value" type="button"
-											class="flex h-9 items-center justify-center rounded-lg text-sm transition-colors" :class="noteConfig.font === font.value
-												? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
-												: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" :style="{ fontFamily: font.value }"
-											:aria-label="font.name" :aria-pressed="noteConfig.font === font.value"
-											@click="noteConfig.font = font.value">
-											Ag
+									<p class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Weight</p>
+									<div class="flex h-9 items-center overflow-hidden rounded-lg ring-1 ring-chalk/10" role="group"
+										aria-label="Font weight">
+										<button type="button"
+											class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+											:disabled="noteConfig.fontWeight.value <= availableWeights[0]!.value"
+											aria-label="Decrease font weight" @click="stepStickyNote(noteConfig, 'fontWeight', -1)">
+											<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+										</button>
+										<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
+										<span
+											class="min-w-0 flex-1 truncate px-2 text-center text-xs leading-none text-chalk"
+											:style="{ fontFamily: noteConfig.font, fontWeight: noteConfig.fontWeight.value }"
+											aria-live="polite">
+											{{ noteConfig.fontWeight.label }}
+										</span>
+										<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
+										<button type="button"
+											class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+											:disabled="noteConfig.fontWeight.value >= availableWeights[availableWeights.length - 1]!.value"
+											aria-label="Increase font weight" @click="stepStickyNote(noteConfig, 'fontWeight', 1)">
+											<Icon name="lucide:plus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 										</button>
 									</div>
 								</div>
 								<div class="shrink-0">
 									<p class="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Size</p>
-									<div class="flex h-9 items-center rounded-lg ring-1 ring-chalk/10" role="group"
+									<div class="flex h-9 items-center overflow-hidden rounded-lg ring-1 ring-chalk/10" role="group"
 										aria-label="Font size">
 										<button type="button"
-											class="flex h-full w-8 items-center justify-center rounded-l-lg text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+											class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
 											:disabled="noteConfig.fontSize <= availableFontSizes[0]!" aria-label="Decrease font size"
-											@click="stepStickyNoteFontSize(noteConfig, -1)">
+											@click="stepStickyNote(noteConfig, 'fontSize', -1)">
 											<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 										</button>
-										<span class="w-8 text-center text-sm tabular-nums text-chalk" aria-live="polite">
+										<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
+										<span class="w-10 shrink-0 text-center text-sm tabular-nums text-chalk" aria-live="polite">
 											{{ noteConfig.fontSize }}
 										</span>
+										<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
 										<button type="button"
-											class="flex h-full w-8 items-center justify-center rounded-r-lg text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
+											class="flex h-full w-9 shrink-0 items-center justify-center text-chalk-faint transition-colors enabled:hover:bg-chalk/[0.06] enabled:hover:text-chalk disabled:opacity-30"
 											:disabled="noteConfig.fontSize >= availableFontSizes[availableFontSizes.length - 1]!"
-											aria-label="Increase font size" @click="stepStickyNoteFontSize(noteConfig, 1)">
+											aria-label="Increase font size" @click="stepStickyNote(noteConfig, 'fontSize', 1)">
 											<Icon name="lucide:plus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 										</button>
 									</div>
@@ -219,7 +247,7 @@ const penButtonRef = ref<HTMLButtonElement>()
 const eraserButtonRef = ref<HTMLButtonElement>()
 const stickyButtonRef = ref<HTMLButtonElement>()
 const { chalks, strokes } = useStrokeConfig()
-const { papers, maxLength, noteConfig, isValid, submit, availableTextColors, availableFonts, availableFontSizes, stepStickyNoteFontSize } = useStickyNotes()
+const { papers, maxLength, noteConfig, isValid, submit, availableTextColors, availableFonts, availableFontSizes, availableWeights, stepStickyNote } = useStickyNotes()
 const emit = defineEmits<{
 	addNote: [note: StickyNote]
 }>()

@@ -5,7 +5,7 @@
 			leave-active-class="transition duration-100 ease-in motion-reduce:transition-none"
 			leave-from-class="translate-x-0 opacity-100" leave-to-class="-translate-x-3 opacity-0">
 			<div v-if="isEditing"
-				class="fixed left-6 top-6 z-30 w-60 rounded-2xl border border-chalk/10 bg-board-raised/95 p-5 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.7)] backdrop-blur-sm"
+				class="fixed left-6 top-6 z-30 w-60 rounded-3xl border border-chalk/10 bg-board-raised/95 p-5 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.7)] backdrop-blur-sm"
 				role="dialog" aria-label="Sticky note options">
 				<div class="mb-3 flex items-center justify-between">
 					<h2 class="font-display text-lg text-chalk">Sticky note</h2>
@@ -16,21 +16,29 @@
 					</button>
 				</div>
 
-				<p class="text-xs leading-relaxed text-chalk-faint">
+				<div class="text-xs leading-relaxed text-chalk-faint">
 					Type to edit the note directly ·
 					<span class="font-semibold text-chalk">Esc</span> to finish
-				</p>
-				<p class="mt-1.5 text-[0.6rem] tabular-nums text-chalk-faint/70" aria-hidden="true">
-					{{ noteConfig.text.length }}/{{ maxLength }}
-				</p>
+				</div>
+				<div class="mt-1.5 flex items-center justify-between gap-2">
+					<p class="text-[0.6rem] tabular-nums text-chalk-faint/70" aria-hidden="true">
+						{{ noteConfig.text.length }}/{{ maxLength }}
+					</p>
+					<button type="button" @click="noteConfig.draggable = !noteConfig.draggable"
+						class="-mr-0.5 inline-flex h-6 items-center gap-1 rounded-md bg-coral px-2 text-[0.65rem] font-semibold text-chalk transition-colors hover:bg-coral-soft"
+						aria-label="Move note">
+						<Icon name="lucide:move" class="h-3 w-3 shrink-0" aria-hidden="true" />
+						{{ noteConfig.draggable ? 'Moving' : 'Move' }}
+					</button>
+				</div>
 
-				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Paper</p>
+				<p class="mb-1.5 mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Paper</p>
 				<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Note color">
 					<button v-for="paper in papers" :key="paper.value" type="button"
 						class="h-8 w-8 rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
 						:class="noteConfig.bgColor === paper.value ? 'ring-2 ring-chalk/70 ring-offset-1 ring-offset-board-raised' : 'ring-1 ring-chalk/10'"
 						:style="{ backgroundColor: paper.value }" :aria-label="paper.name"
-						:aria-pressed="noteConfig.bgColor === paper.value" @click="emit('pickColor', paper.value)">
+						:aria-pressed="noteConfig.bgColor === paper.value" @click="noteConfig.bgColor = paper.value">
 					</button>
 				</div>
 
@@ -66,10 +74,8 @@
 						<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 					</button>
 					<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
-					<span
-						class="min-w-0 flex-1 truncate px-2 text-center text-xs leading-none text-chalk"
-						:style="{ fontFamily: noteConfig.font, fontWeight: noteConfig.fontWeight.value }"
-						aria-live="polite">
+					<span class="min-w-0 flex-1 truncate px-2 text-center text-xs leading-none text-chalk"
+						:style="{ fontFamily: noteConfig.font, fontWeight: noteConfig.fontWeight.value }" aria-live="polite">
 						{{ noteConfig.fontWeight.label }}
 					</span>
 					<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
@@ -117,8 +123,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-	pickColor: [color: string]
-	close: []
+	move: [value: void]
+	close: [value: void]
 }>()
 
 

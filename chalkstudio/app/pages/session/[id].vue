@@ -18,28 +18,29 @@
 			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
 				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
 			<StickyNoteEditor v-model:is-editing="isEditing" v-model:note-config="noteConfig" :max-length="maxLength"
-				@pick-color="setNoteColor($event, user)" @close="cancelNoteEdit" />
+				@close="cancelNoteEdit" />
 		</div>
 	</ClientOnly>
 </template>
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, BoardUser, Tool, BoardSettings } from '~/types/board'
+import type { BoardEvent, Tool, BoardSettings } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
-import { v4 as uuidv4 } from 'uuid'
-const user: Ref<string> = ref(uuidv4().slice(0, 8))
+
 definePageMeta({
 	layout: 'blank',
 })
 useHead({
 	bodyAttrs: { class: 'overflow-hidden' },
 })
-const BOARD_WIDTH: number = 3840
-const BOARD_HEIGHT: number = 1080
-const viewportWidth: Ref<number> = ref(BOARD_WIDTH)
-const viewportHeight: Ref<number> = ref(BOARD_HEIGHT)
-const loading: Ref<boolean> = ref(false)
+
+const BOARD_WIDTH = 3840
+const BOARD_HEIGHT = 1080
+const viewportWidth = ref(BOARD_WIDTH)
+const viewportHeight = ref(BOARD_HEIGHT)
+const loading = ref(false)
+const quickNotice = ref<QuickNotice | undefined>(undefined)
 
 const route = useRoute()
 const room = computed(() => route.params.id as string)
@@ -49,7 +50,7 @@ type VueKonvaComponentRef = {
 	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer
 }
 
-const settings: Ref<BoardSettings> = ref({
+const settings = ref<BoardSettings>({
 	focusMode: false,
 	consolidateParticipantsPanel: false,
 	showSprites: true,
@@ -60,20 +61,21 @@ watch(() => settings.value.focusMode, (focusMode) => {
 	else exitFullscreen()
 })
 
-const penPanelOpen: Ref<boolean> = ref(false)
-const color: Ref<string> = ref('#f5f0e8')
-const strokeWidth: Ref<number> = ref(5)
-const tool: Ref<Tool> = ref('pen')
+const penPanelOpen = ref(false)
+const color = ref('#f5f0e8')
+const strokeWidth = ref(5)
+const tool = ref<Tool>('pen')
 
-const users: Ref<Map<string, BoardUser>> = ref(new Map<string, BoardUser>([[user.value, { name: user.value, color: color.value }]]))
+const { user, users, applyRoster, trackPresence, updatePan } = useBoardUsers()
+
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
-const isDrawing: Ref<boolean> = ref(false)
+const isDrawing = ref(false)
 const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
 	width: viewportWidth.value,
 	height: viewportHeight.value,
-	draggable: tool.value === "pan",
+	draggable: tool.value === 'pan',
 }))
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined
@@ -84,121 +86,87 @@ const getBoardPointer = () => {
 	if (!stage || !layer || !pos) return undefined
 	return layer.getAbsoluteTransform().copy().invert().point(pos)
 }
+
 const { popUpSprite, displayUserLocation } = useBoardPopUp({
 	getLayer,
 	getStage,
 	getViewportSize: () => ({ width: viewportWidth.value, height: viewportHeight.value }),
 })
-const zoom: Ref<number> = ref(1)
+
+const zoom = ref(1)
 const zoomPercent = computed(() => Math.round(zoom.value * 100))
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
 useKeyboard({
 	zoom: { increaseZoom, decreaseZoom },
 	settings,
 })
+
 const remoteLines = new Map<string, KonvaTypes.Line>()
 const userSpritePops = new Map<string, number>()
-const quickNotice: Ref<QuickNotice | undefined> = ref(undefined)
 
-const { send } = useWebSocket(computed(() => `/ws/session/${room.value}`), {
-	onMessage(_ws, messageEvent) {
-		try {
-			const event: BoardEvent = JSON.parse(messageEvent.data as string) as BoardEvent
-			if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
-				const isEraser = event.data?.attrs?.globalCompositeOperation === 'destination-out'
-				const points = event.data?.attrs?.points
-				const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
-				const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
-				if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
-					const lastPop = userSpritePops.get(event.user)
-					if (lastPop === undefined || lastPop + 900 < Date.now()) {
-						popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
-						userSpritePops.set(event.user, Date.now())
-					}
-				}
-				const lineId = event.data?.attrs?.id as string | undefined
-				const layer = getLayer()
-				if (!lineId || !event.data || !layer) return
-				let line = remoteLines.get(lineId)
-				if (!line) {
-					line = Konva.Node.create(event.data) as KonvaTypes.Line
-					layer.add(line)
-					remoteLines.set(lineId, line)
-				} else {
-					line.setAttrs(event.data.attrs)
-				}
-				layer.batchDraw()
-				users.value.set(event.user, {
-					name: event.user,
-					x,
-					y,
-					color: event.color || users.value.get(event.user)?.color || color.value,
-				})
-				if (event.type === 'drawEnd') remoteLines.delete(lineId)
-			} else if (event.type === 'join' || event.type === 'leave') {
-				const roster = event.others
-					? new Map<string, BoardUser>(Object.entries(event.others))
-					: new Map<string, BoardUser>()
-				if (!roster.has(user.value)) {
-					roster.set(user.value, users.value.get(user.value) ?? { name: user.value, color: color.value })
-				}
-				if (event.user === user.value) {
-					const spriteColor = event.color ?? roster.get(user.value)?.color
-					if (spriteColor) localStorage.setItem('spriteColor', spriteColor)
-				}
-				users.value = roster
-			} else if (event.type === 'pan') {
-				const user = event.user
-				const x = event.data.x
-				const y = event.data.y
-				if (users.value.has(user)) {
-					users.value.get(user)!.x = x
-					users.value.get(user)!.y = y
-				}
-			} else if (event.type === 'stickyNote-new') {
-				const note = Konva.Node.create(event.data) as KonvaTypes.Group
-				const layer = getLayer()
-				if (!layer || !note) return
-				attachStickyNoteHandlers(note)
-				users.value.set(event.user, {
-					name: event.user,
-					x: note.attrs.x,
-					y: note.attrs.y,
-					color: event.color || users.value.get(event.user)?.color || color.value,
-				})
-				layer.add(note)
-				layer.batchDraw()
-			} else if (event.type === 'stickyNote-edit') {
-				const layer = getLayer()
-				const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
-				if (!layer || !group) return
-				void applyNoteEdit(group, event.data).then(() => layer.batchDraw())
+const handleBoardEvent = (event: BoardEvent) => {
+	if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
+		const isEraser = event.data?.attrs?.globalCompositeOperation === 'destination-out'
+		const points = event.data?.attrs?.points
+		const x = event.type === 'drawStart' ? points[0] : points[points.length - 2]
+		const y = event.type === 'drawStart' ? points[1] : points[points.length - 1]
+		if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
+			const lastPop = userSpritePops.get(event.user)
+			if (lastPop === undefined || lastPop + 900 < Date.now()) {
+				popUpSprite({ user: event.user, x, y, color: event?.color || color.value })
+				userSpritePops.set(event.user, Date.now())
 			}
-		} catch (e) {
-			console.error(e)
-			quickNotice.value = { message: 'Error parsing remote event', type: 'error' }
-		} finally {
-			//DEBUG PURPOSES: mock roster to preview overflow behaviour
-			// MOCK USERS
-			// users.value = new Map<string, BoardUser>([
-			// 	[user.value, { name: user.value, color: color.value }],
-			// 	['mock-1', { name: 'Alice', color: '#e07a5f' }],
-			// 	['mock-2', { name: 'Bartholomew-the-Long-Named', color: '#81b29a', x: 100, y: 100 }],
-			// 	['mock-3', { name: 'Charlie', color: '#f2cc8f' }],
-			// 	['mock-4', { name: 'Dominika', color: '#8ecae6' }],
-			// 	['mock-5', { name: 'Edgar', color: '#c77dff' }],
-			// 	['mock-6', { name: 'Fiona', color: '#ffb703' }],
-			// 	['mock-7', { name: 'Grzegorz', color: '#90be6d' }],
-			// 	['mock-8', { name: 'Helena', color: '#f28482' }],
-			// ])
 		}
+		const lineId = event.data?.attrs?.id as string | undefined
+		const layer = getLayer()
+		if (!lineId || !event.data || !layer) return
+		let line = remoteLines.get(lineId)
+		if (!line) {
+			line = Konva.Node.create(event.data) as KonvaTypes.Line
+			layer.add(line)
+			remoteLines.set(lineId, line)
+		} else {
+			line.setAttrs(event.data.attrs)
+		}
+		layer.batchDraw()
+		trackPresence(event.user, { x, y, color: event.color })
+		if (event.type === 'drawEnd') remoteLines.delete(lineId)
+	} else if (event.type === 'join' || event.type === 'leave') {
+		applyRoster(event)
+	} else if (event.type === 'pan') {
+		updatePan(event.user, event.data.x, event.data.y)
+	} else if (event.type === 'stickyNote-new') {
+		const note = Konva.Node.create(event.data) as KonvaTypes.Group
+		const layer = getLayer()
+		if (!layer || !note) return
+		attachStickyNoteHandlers(note)
+		trackPresence(event.user, { x: note.attrs.x, y: note.attrs.y, color: event.color })
+		layer.add(note)
+		layer.batchDraw()
+	} else if (event.type === 'stickyNote-edit') {
+		const layer = getLayer()
+		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
+		if (!layer || !group) return
+		applyNoteEdit(group, event.data.note)
+	}
+}
+
+const { send, join, leave } = useBoardWebSocket({
+	room,
+	userId: user.value,
+	onEvent: handleBoardEvent,
+	onError: (error) => {
+		console.error(error)
+		quickNotice.value = { message: 'Error parsing remote event', type: 'error' }
 	},
 })
 
-const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, setNoteColor, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
+const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
 	useStickyNotes({ getLayer, getStage, send })
 
-watch(noteConfig, () => updateNote(user.value), { deep: true })
+watch(noteConfig, () => {
+	if (isEditing.value) updateNote(user.value)
+}, { deep: true })
 
 const setViewportSize = () => {
 	viewportWidth.value = window.innerWidth
@@ -210,7 +178,7 @@ onMounted(() => {
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
 	document.addEventListener('fullscreenchange', syncFocusModeWithFullscreen)
-	send(JSON.stringify({ type: 'join', user: user.value, color: localStorage.getItem('spriteColor') }))
+	join()
 	loading.value = false
 })
 
@@ -218,7 +186,7 @@ onUnmounted(() => {
 	if (settings.value.focusMode) exitFullscreen()
 	window.removeEventListener('resize', setViewportSize)
 	document.removeEventListener('fullscreenchange', syncFocusModeWithFullscreen)
-	send(JSON.stringify({ type: 'leave', user: user.value }))
+	leave()
 })
 
 const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
@@ -226,7 +194,7 @@ const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 }
 
 const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
-	if (e.evt.button === 2 || tool.value === "pan") return
+	if (e.evt.button === 2 || tool.value === 'pan') return
 	if (isStickyNoteTarget(e.target, getStage())) return
 	if (isEditing.value) {
 		cancelNoteEdit()
@@ -256,7 +224,7 @@ const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 	layer.add(currentLine.value)
 }
 
-const lastWsMessage: Ref<number> = ref<number>(Date.now())
+const lastWsMessage = ref(Date.now())
 const handleMouseMove = () => {
 	if (!isDrawing.value || !currentLine.value) return
 	const pos = getBoardPointer()
@@ -273,7 +241,7 @@ const handleMouseMove = () => {
 
 const handleMouseUp = () => {
 	const pos = getBoardPointer()
-	if (tool.value === "pan" && pos) {
+	if (tool.value === 'pan' && pos) {
 		send(JSON.stringify({ type: 'pan', user: user.value, data: { x: pos.x, y: pos.y } }))
 		return
 	}

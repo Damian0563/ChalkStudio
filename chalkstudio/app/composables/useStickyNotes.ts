@@ -204,7 +204,6 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			child.listening(child.getClassName() === 'Rect')
 		}
 		group.on('dragstart dragmove', (e) => {
-			console.log(noteConfig.value.draggable)
 			if (!noteConfig.value.draggable || Date.now() - lastWsMessage < wsThrottle || !send) return
 			lastWsMessage = Date.now()
 			send(JSON.stringify({ type: 'stickyNote-move', user: owner, data: { id: group.id(), x: group.x(), y: group.y() } }))

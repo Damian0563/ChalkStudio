@@ -10,6 +10,7 @@ export type StickyNote = {
 		value: number
 	}
 	bgColor: string
+	draggable: boolean
 }
 
 export type BoardSettings = {
@@ -33,7 +34,7 @@ export type BoardUser = {
 }
 
 export type BoardEvent = {
-	type: string
+	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move'
 	user: string
 	data: any
 	color?: string

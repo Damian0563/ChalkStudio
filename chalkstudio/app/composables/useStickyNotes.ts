@@ -216,7 +216,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.on('mousedown.sticky touchstart.sticky', (e) => {
 			e.cancelBubble = true
 		})
-		group.on('hover.sticky', (_) => {
+		group.on('mouseenter.sticky', (_) => {
 			if (noteConfig.value.draggable) stage.container().style.cursor = 'grab'
 		})
 		group.on('dragstart.sticky dragmove.sticky', (e) => {

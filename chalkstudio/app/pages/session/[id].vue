@@ -148,6 +148,14 @@ const handleBoardEvent = (event: BoardEvent) => {
 		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
 		if (!layer || !group) return
 		applyNoteEdit(group, event.data.note)
+	} else if (event.type === 'stickyNote-move') {
+		const layer = getLayer()
+		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
+		if (!layer || !group) return
+		group.x(event.data.x)
+		group.y(event.data.y)
+		trackPresence(event.user, { x: event.data.x, y: event.data.y })
+		layer.batchDraw()
 	}
 }
 
@@ -162,7 +170,7 @@ const { send, join, leave } = useBoardWebSocket({
 })
 
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
-	useStickyNotes({ getLayer, getStage, send })
+	useStickyNotes({ getLayer, getStage, send, getUser: () => user.value })
 
 watch(noteConfig, () => {
 	if (isEditing.value) updateNote(user.value)

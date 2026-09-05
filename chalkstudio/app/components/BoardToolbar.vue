@@ -177,8 +177,7 @@
 											<Icon name="lucide:minus" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 										</button>
 										<div class="h-4 w-px shrink-0 bg-chalk/10" aria-hidden="true" />
-										<span
-											class="min-w-0 flex-1 truncate px-2 text-center text-xs leading-none text-chalk"
+										<span class="min-w-0 flex-1 truncate px-2 text-center text-xs leading-none text-chalk"
 											:style="{ fontFamily: noteConfig.font, fontWeight: noteConfig.fontWeight.value }"
 											aria-live="polite">
 											{{ noteConfig.fontWeight.label }}
@@ -271,6 +270,7 @@ const noteTextareaRef = ref<HTMLTextAreaElement>()
 const toggleStickyPanel = () => {
 	stickyPanelOpen.value = !stickyPanelOpen.value
 	if (stickyPanelOpen.value) {
+		noteConfig.value.text = ''
 		penPanelOpen.value = false
 		nextTick(() => noteTextareaRef.value?.focus())
 	}

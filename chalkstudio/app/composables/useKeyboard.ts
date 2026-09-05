@@ -19,6 +19,14 @@ export const keyboardShortcuts: KeyboardShortcut[] = [
 		keys: ['Ctrl / ⌘', '−'],
 	},
 	{
+		description: 'Undo your changes',
+		keys: ['Ctrl / ⌘', 'Z'],
+	},
+	{
+		description: 'Redo your changes',
+		keys: ['Ctrl / ⌘', 'Y'],
+	},
+	{
 		description: 'Close open panel or dialog',
 		keys: ['Esc'],
 	},
@@ -52,6 +60,12 @@ export function useKeyboard(options: UseKeyboardOptions) {
 		} else if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
 			e.preventDefault()
 			zoom.decreaseZoom()
+		} else if (e.code === 'KeyZ') {
+			e.preventDefault()
+			console.log('undo')
+		} else if (e.code === 'KeyY') {
+			e.preventDefault()
+			console.log('redo')
 		}
 	}
 

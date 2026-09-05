@@ -76,12 +76,14 @@ const availableFontSizes: number[] = [
 ] as const
 
 
-
 const NOTE_MAX_LENGTH = 280
 const NOTE_WIDTH = 160
 const NOTE_MIN_HEIGHT = 80
 const NOTE_PADDING = 12
 const STICKY_NOTE_NAME = 'sticky-note'
+const STICKY_DISCARD_NAME = 'sticky-discard'
+const DISCARD_RADIUS = 11
+const DISCARD_ARM = 3
 const isSetupStickyNote: Ref<boolean> = ref(false)
 
 type StickyNoteOptions = {
@@ -95,7 +97,7 @@ const stickyNotePosition: Ref<{ x: number; y: number } | null> = ref(null)
 const pendingNote: Ref<StickyNote | null> = ref(null)
 const isEditing: Ref<boolean> = ref(false)
 let editingGroup: KonvaTypes.Group | null = null
-const defaultNote: StickyNote = {
+const createDefaultNote = (): StickyNote => ({
 	text: '',
 	font: '"Source Sans 3", system-ui, sans-serif',
 	fontSize: 14,
@@ -103,16 +105,16 @@ const defaultNote: StickyNote = {
 	textColor: '#000000',
 	bgColor: '#f5f0e8',
 	draggable: false,
-}
+})
 
 export const useStickyNotes = (options?: StickyNoteOptions) => {
 	const Konva = useKonva()
-	const noteConfig: Ref<StickyNote> = ref(defaultNote)
+	const noteConfig: Ref<StickyNote> = ref(createDefaultNote())
 	const isValid = computed(() => noteConfig.value.text.trim().length > 0)
 
 	const submit = (): StickyNote | null => {
 		noteConfig.value.text = noteConfig.value.text.trim()
-		return noteConfig.value
+		return { ...noteConfig.value, fontWeight: { ...noteConfig.value.fontWeight } }
 	}
 
 	const stepStickyNote = (
@@ -200,6 +202,67 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.off('.sticky')
 	}
 
+	const createDiscardButton = (): KonvaTypes.Group => {
+		const button = new Konva.Group({
+			name: STICKY_DISCARD_NAME,
+			x: NOTE_WIDTH - 2,
+			y: 2,
+			opacity: 0,
+			listening: true,
+		})
+		const circle = new Konva.Circle({
+			radius: DISCARD_RADIUS,
+			fill: '#1a2332',
+			stroke: '#f5f0e8',
+			strokeWidth: 1.5,
+			shadowColor: '#000',
+			shadowBlur: 6,
+			shadowOpacity: 0.35,
+			shadowOffsetY: 1,
+		})
+		const crossOptions = {
+			stroke: '#f5f0e8',
+			strokeWidth: 2,
+			lineCap: 'round' as const,
+			listening: false,
+		}
+		button.add(circle)
+		button.add(new Konva.Line({ points: [-DISCARD_ARM, -DISCARD_ARM, DISCARD_ARM, DISCARD_ARM], ...crossOptions }))
+		button.add(new Konva.Line({ points: [-DISCARD_ARM, DISCARD_ARM, DISCARD_ARM, -DISCARD_ARM], ...crossOptions }))
+		const stage = options?.getStage()
+		button.on('mouseenter.sticky', (e) => {
+			e.cancelBubble = true
+			circle.fill('#8e3b2f')
+			if (stage) stage.container().style.cursor = 'pointer'
+			button.getLayer()?.batchDraw()
+		})
+		button.on('mouseleave.sticky', (e) => {
+			e.cancelBubble = true
+			circle.fill('#1a2332')
+			if (stage) stage.container().style.cursor = 'default'
+			button.getLayer()?.batchDraw()
+		})
+		button.on('click.sticky tap.sticky', (e) => {
+			e.cancelBubble = true
+		})
+		return button
+	}
+
+	const showDiscardButton = (group: KonvaTypes.Group) => {
+		if (group.findOne(`.${STICKY_DISCARD_NAME}`)) return
+		const button = createDiscardButton()
+		group.add(button)
+		button.to({ opacity: 1, duration: 0.12 })
+		group.getLayer()?.batchDraw()
+	}
+
+	const hideDiscardButton = (group: KonvaTypes.Group | null) => {
+		const button = group?.findOne(`.${STICKY_DISCARD_NAME}`)
+		if (!button || !group) return
+		button.destroy()
+		group.getLayer()?.batchDraw()
+	}
+
 	const attachStickyNoteHandlers = (group: KonvaTypes.Group, owner?: string) => {
 		detachStickyNoteHandlers(group)
 		const send = options?.send
@@ -211,7 +274,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.listening(true)
 		group.name(STICKY_NOTE_NAME)
 		for (const child of group.getChildren()) {
-			child.listening(child.getClassName() === 'Rect')
+			child.listening(child.getClassName() === 'Rect' || child.name() === STICKY_DISCARD_NAME)
 		}
 		group.on('mousedown.sticky touchstart.sticky', (e) => {
 			e.cancelBubble = true
@@ -236,7 +299,9 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
 			const rect = group.findOne('Rect') as KonvaTypes.Rect | undefined
 			if (!textNode) return
+			if (editingGroup && editingGroup !== group) hideDiscardButton(editingGroup)
 			editingGroup = group
+			showDiscardButton(group)
 			noteConfig.value.text = textNode.text()
 			noteConfig.value.font = textNode.fontFamily()
 			noteConfig.value.fontSize = textNode.fontSize()
@@ -273,6 +338,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 	}
 
 	const cancelNoteEdit = () => {
+		hideDiscardButton(editingGroup)
 		editingGroup = null
 		isEditing.value = false
 	}
@@ -287,7 +353,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			send(JSON.stringify({
 				type: 'stickyNote-edit',
 				user: editor,
-				data: { id: group.id(), note: noteConfig.value },
+				data: { id: group.id(), note: noteConfig.value, pos: { x: group.x(), y: group.y() } },
 			}))
 		})
 	}

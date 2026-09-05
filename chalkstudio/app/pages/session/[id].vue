@@ -148,6 +148,7 @@ const handleBoardEvent = (event: BoardEvent) => {
 		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
 		if (!layer || !group) return
 		applyNoteEdit(group, event.data.note)
+		trackPresence(event.user, event.data.pos as { x: number; y: number })
 	} else if (event.type === 'stickyNote-move') {
 		const layer = getLayer()
 		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined

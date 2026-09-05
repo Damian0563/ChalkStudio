@@ -88,24 +88,26 @@ type StickyNoteOptions = {
 	getLayer: () => KonvaTypes.Layer | undefined
 	getStage: () => KonvaTypes.Stage | undefined
 	send: (message: string) => void
+	getUser?: () => string
 }
 
 const stickyNotePosition: Ref<{ x: number; y: number } | null> = ref(null)
 const pendingNote: Ref<StickyNote | null> = ref(null)
 const isEditing: Ref<boolean> = ref(false)
 let editingGroup: KonvaTypes.Group | null = null
+const defaultNote: StickyNote = {
+	text: '',
+	font: '"Source Sans 3", system-ui, sans-serif',
+	fontSize: 14,
+	fontWeight: { label: 'Regular', value: 500 },
+	textColor: '#000000',
+	bgColor: '#f5f0e8',
+	draggable: false,
+}
 
 export const useStickyNotes = (options?: StickyNoteOptions) => {
 	const Konva = useKonva()
-	const noteConfig: Ref<StickyNote> = ref({
-		text: '',
-		font: '"Source Sans 3", system-ui, sans-serif',
-		fontSize: 14,
-		fontWeight: { label: 'Regular', value: 500 },
-		textColor: '#000000',
-		bgColor: '#f5f0e8',
-		draggable: false,
-	})
+	const noteConfig: Ref<StickyNote> = ref(defaultNote)
 	const isValid = computed(() => noteConfig.value.text.trim().length > 0)
 
 	const submit = (): StickyNote | null => {
@@ -194,28 +196,43 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		cancelNotePlacement()
 	}
 
-	const attachStickyNoteHandlers = (group: KonvaTypes.Group, owner: string) => {
+	const detachStickyNoteHandlers = (group: KonvaTypes.Group) => {
+		group.off('.sticky')
+	}
+
+	const attachStickyNoteHandlers = (group: KonvaTypes.Group, owner?: string) => {
+		detachStickyNoteHandlers(group)
 		const send = options?.send
+		const stage = options?.getStage()
+		if (!send || !stage) return
 		const wsThrottle = 50
 		let lastWsMessage = Date.now()
+		const getMover = () => options?.getUser?.() || owner || ''
 		group.listening(true)
 		group.name(STICKY_NOTE_NAME)
 		for (const child of group.getChildren()) {
 			child.listening(child.getClassName() === 'Rect')
 		}
-		group.on('dragstart dragmove', (e) => {
-			if (!noteConfig.value.draggable || Date.now() - lastWsMessage < wsThrottle || !send) return
-			lastWsMessage = Date.now()
-			send(JSON.stringify({ type: 'stickyNote-move', user: owner, data: { id: group.id(), x: group.x(), y: group.y() } }))
+		group.on('mousedown.sticky touchstart.sticky', (e) => {
 			e.cancelBubble = true
 		})
-		group.on('dragend', (_) => {
-			noteConfig.value.draggable = false
-			applyNoteEdit(owner, group, noteConfig.value)
-			if (!send) return
-			send(JSON.stringify({ type: 'stickyNote-move', user: owner, data: { id: group.id(), x: group.x(), y: group.y() } }))
+		group.on('mouseenter.sticky', (_) => {
+			if (noteConfig.value.draggable) stage.container().style.cursor = 'grab'
 		})
-		group.on('click tap', () => {
+		group.on('dragstart.sticky dragmove.sticky', (e) => {
+			if (!noteConfig.value.draggable || Date.now() - lastWsMessage < wsThrottle) return
+			stage.container().style.cursor = 'grabbing'
+			lastWsMessage = Date.now()
+			send(JSON.stringify({ type: 'stickyNote-move', user: getMover(), data: { id: group.id(), x: group.x(), y: group.y() } }))
+			e.cancelBubble = true
+		})
+		group.on('dragend.sticky', (_) => {
+			noteConfig.value.draggable = false
+			group.draggable(false)
+			stage.container().style.cursor = 'default'
+			send(JSON.stringify({ type: 'stickyNote-move', user: getMover(), data: { id: group.id(), x: group.x(), y: group.y() } }))
+		})
+		group.on('click.sticky tap.sticky', () => {
 			const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
 			const rect = group.findOne('Rect') as KonvaTypes.Rect | undefined
 			if (!textNode) return
@@ -230,11 +247,11 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		})
 	}
 
-	const applyNoteEdit = async (
-		owner: string,
+	async function applyNoteEdit(
 		group: KonvaTypes.Group,
 		data: StickyNote,
-	) => {
+	): Promise<void> {
+		if (!group || !data) return
 		const layer = options?.getLayer()
 		if (!layer) return
 		const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
@@ -252,7 +269,6 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		if (typeof data.bgColor === 'string') rect.fill(data.bgColor)
 		if (typeof data.draggable === 'boolean') group.draggable(data.draggable)
 		rect.height(Math.max(NOTE_MIN_HEIGHT, textNode.height() + NOTE_PADDING * 2))
-		attachStickyNoteHandlers(group, owner)
 		layer.batchDraw()
 	}
 
@@ -261,15 +277,16 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		isEditing.value = false
 	}
 
-	const updateNote = (owner: string) => {
+	const updateNote = (owner?: string) => {
 		const group = editingGroup
 		const layer = options?.getLayer()
 		const send = options?.send
 		if (!group || !layer || !send) return
-		void applyNoteEdit(owner, group, noteConfig.value).then(() => {
+		const editor = options?.getUser?.() || owner || ''
+		void applyNoteEdit(group, noteConfig.value).then(() => {
 			send(JSON.stringify({
 				type: 'stickyNote-edit',
-				user: owner,
+				user: editor,
 				data: { id: group.id(), note: noteConfig.value },
 			}))
 		})
@@ -304,6 +321,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		placeNote,
 		cancelNotePlacement,
 		attachStickyNoteHandlers,
+		detachStickyNoteHandlers,
 		applyNoteEdit,
 		isEditing,
 		updateNote,

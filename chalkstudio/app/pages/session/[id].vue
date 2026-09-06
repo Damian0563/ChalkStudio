@@ -9,7 +9,7 @@
 				<v-layer ref="layerRef" />
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
-				v-model:tool="tool" @add-note="positionNote($event)" />
+				v-model:tool="tool" @add-note="positionNote($event)" @undo="handleUndo()" @redo="handleRedo()" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
 			<Settings v-model:settings="settings" />
@@ -25,9 +25,8 @@
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, Tool, BoardSettings } from '~/types/board'
+import type { BoardEvent, Tool, BoardSettings, HistoryEvent } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
-
 definePageMeta({
 	layout: 'blank',
 })
@@ -95,16 +94,10 @@ const { popUpSprite, displayUserLocation } = useBoardPopUp({
 
 const zoom = ref(1)
 const zoomPercent = computed(() => Math.round(zoom.value * 100))
-const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
-useKeyboard({
-	zoom: { increaseZoom, decreaseZoom },
-	settings,
-})
-
 const remoteLines = new Map<string, KonvaTypes.Line>()
 const userSpritePops = new Map<string, number>()
 
-const handleBoardEvent = (event: BoardEvent) => {
+const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 	if (event.type === 'drawStart' || event.type === 'draw' || event.type === 'drawEnd') {
 		const isEraser = event.data?.attrs?.globalCompositeOperation === 'destination-out'
 		const points = event.data?.attrs?.points
@@ -157,7 +150,24 @@ const handleBoardEvent = (event: BoardEvent) => {
 		group.y(event.data.y)
 		trackPresence(event.user, { x: event.data.x, y: event.data.y })
 		layer.batchDraw()
+	} else if (event.type === 'stickyNote-delete') {
+		const layer = getLayer()
+		const group = layer?.findOne(`#${event.data?.attrs?.id}`) as KonvaTypes.Group | undefined
+		if (!layer || !group) return
+		group.destroy()
+		layer.batchDraw()
 	}
+	if (event.type !== 'undo' && event.type !== 'redo') recordEvent(event as BoardEvent)
+}
+
+const handleUndo = () => {
+	const id = undo()
+	if (id && id === noteConfig.value.groupId) cancelNoteEdit()
+}
+
+const handleRedo = () => {
+	const id = redo()
+	if (id && id === noteConfig.value.groupId) cancelNoteEdit()
 }
 
 const { send, join, leave } = useBoardWebSocket({
@@ -170,8 +180,24 @@ const { send, join, leave } = useBoardWebSocket({
 	},
 })
 
+const { undo, redo, recordEvent } = useHistory({
+	getLayer,
+	getStage,
+	send,
+	onRestore: (node) => {
+		if (isStickyNoteTarget(node, getStage())) attachStickyNoteHandlers(node as KonvaTypes.Group)
+	},
+})
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
-	useStickyNotes({ getLayer, getStage, send, getUser: () => user.value })
+	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value })
+const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
+useKeyboard({
+	zoom: { increaseZoom, decreaseZoom },
+	history: { undo: handleUndo, redo: handleRedo },
+	settings,
+})
+
+
 
 watch(noteConfig, () => {
 	if (isEditing.value) updateNote(user.value)
@@ -257,6 +283,7 @@ const handleMouseUp = () => {
 	if (!currentLine.value) return
 	isDrawing.value = false
 	send(JSON.stringify({ type: 'drawEnd', user: user.value, data: currentLine.value.toObject() }))
+	recordEvent({ type: 'drawEnd', user: user.value, data: currentLine.value.toObject() })
 	currentLine.value = undefined
 }
 </script>

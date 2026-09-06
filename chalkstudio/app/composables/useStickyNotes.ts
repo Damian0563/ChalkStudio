@@ -1,5 +1,5 @@
 import type KonvaTypes from 'konva'
-import type { StickyNote } from '~/types/board'
+import type { BoardEvent, StickyNote } from '~/types/board'
 
 const STICKY_PAPERS: { name: string; value: string }[] = [
 	{ name: 'Chalk white', value: '#f5f0e8' },
@@ -91,6 +91,7 @@ type StickyNoteOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
 	send: (message: string) => void
 	getUser?: () => string
+	recordEvent?: (event: BoardEvent, before?: object | null) => void
 }
 
 const stickyNotePosition: Ref<{ x: number; y: number } | null> = ref(null)
@@ -111,7 +112,6 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 	const Konva = useKonva()
 	const noteConfig: Ref<StickyNote> = ref(createDefaultNote())
 	const isValid = computed(() => noteConfig.value.text.trim().length > 0)
-
 	const submit = (): StickyNote | null => {
 		noteConfig.value.text = noteConfig.value.text.trim()
 		return { ...noteConfig.value, fontWeight: { ...noteConfig.value.fontWeight } }
@@ -176,6 +176,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		layer.add(group)
 		layer.batchDraw()
 		send(JSON.stringify({ type: 'stickyNote-new', user: owner, data: group.toObject() }))
+		options?.recordEvent?.({ type: 'stickyNote-new', user: owner, data: group.toObject() })
 		stickyNotePosition.value = null
 	}
 
@@ -202,7 +203,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.off('.sticky')
 	}
 
-	const createDiscardButton = (): KonvaTypes.Group => {
+	const createDiscardButton = (parent: KonvaTypes.Group): KonvaTypes.Group => {
 		const button = new Konva.Group({
 			name: STICKY_DISCARD_NAME,
 			x: NOTE_WIDTH - 2,
@@ -244,13 +245,18 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		})
 		button.on('click.sticky tap.sticky', (e) => {
 			e.cancelBubble = true
+			options?.recordEvent?.({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data: parent.toObject() })
+			options?.send?.(JSON.stringify({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data: parent.toObject() }))
+			if (editingGroup === parent) cancelNoteEdit()
+			parent.destroy()
+			options?.getLayer()?.batchDraw()
 		})
 		return button
 	}
 
 	const showDiscardButton = (group: KonvaTypes.Group) => {
 		if (group.findOne(`.${STICKY_DISCARD_NAME}`)) return
-		const button = createDiscardButton()
+		const button = createDiscardButton(group)
 		group.add(button)
 		button.to({ opacity: 1, duration: 0.12 })
 		group.getLayer()?.batchDraw()
@@ -265,12 +271,13 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 
 	const attachStickyNoteHandlers = (group: KonvaTypes.Group, owner?: string) => {
 		detachStickyNoteHandlers(group)
+		hideDiscardButton(group)
 		const send = options?.send
 		const stage = options?.getStage()
 		if (!send || !stage) return
 		const wsThrottle = 50
 		let lastWsMessage = Date.now()
-		const getMover = () => options?.getUser?.() || owner || ''
+		const editor = options?.getUser?.() || owner || ''
 		group.listening(true)
 		group.name(STICKY_NOTE_NAME)
 		for (const child of group.getChildren()) {
@@ -286,14 +293,14 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			if (!noteConfig.value.draggable || Date.now() - lastWsMessage < wsThrottle) return
 			stage.container().style.cursor = 'grabbing'
 			lastWsMessage = Date.now()
-			send(JSON.stringify({ type: 'stickyNote-move', user: getMover(), data: { id: group.id(), x: group.x(), y: group.y() } }))
+			send(JSON.stringify({ type: 'stickyNote-move', user: editor, data: { id: group.id(), x: group.x(), y: group.y() } }))
 			e.cancelBubble = true
 		})
 		group.on('dragend.sticky', (_) => {
 			noteConfig.value.draggable = false
 			group.draggable(false)
 			stage.container().style.cursor = 'default'
-			send(JSON.stringify({ type: 'stickyNote-move', user: getMover(), data: { id: group.id(), x: group.x(), y: group.y() } }))
+			send(JSON.stringify({ type: 'stickyNote-move', user: editor, data: { id: group.id(), x: group.x(), y: group.y() } }))
 		})
 		group.on('click.sticky tap.sticky', () => {
 			const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
@@ -303,6 +310,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			editingGroup = group
 			showDiscardButton(group)
 			noteConfig.value.text = textNode.text()
+			noteConfig.value.groupId = group.id()
 			noteConfig.value.font = textNode.fontFamily()
 			noteConfig.value.fontSize = textNode.fontSize()
 			noteConfig.value.fontWeight.value = Number(textNode.fontStyle())
@@ -322,6 +330,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
 		const rect = group.findOne('Rect') as KonvaTypes.Rect | undefined
 		if (!textNode || !rect) return
+		const before = group.toObject()
 		const font = typeof data.font === 'string' ? data.font : textNode.fontFamily()
 		const fontSize = typeof data.fontSize === 'number' ? data.fontSize : textNode.fontSize()
 		const fontWeight = data.fontWeight !== undefined ? data.fontWeight.value : Number(textNode.fontStyle())
@@ -335,6 +344,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		if (typeof data.draggable === 'boolean') group.draggable(data.draggable)
 		rect.height(Math.max(NOTE_MIN_HEIGHT, textNode.height() + NOTE_PADDING * 2))
 		layer.batchDraw()
+		options?.recordEvent?.({ type: 'stickyNote-edit', user: options?.getUser?.() || "", data: group.toObject() }, before)
 	}
 
 	const cancelNoteEdit = () => {

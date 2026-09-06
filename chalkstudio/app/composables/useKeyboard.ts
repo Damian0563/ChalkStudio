@@ -37,16 +37,20 @@ type KeyboardZoomHandlers = {
 	decreaseZoom: () => void
 }
 
+type HistoryHandlers = {
+	undo: () => void
+	redo: () => void
+}
+
 export type UseKeyboardOptions = {
 	zoom: KeyboardZoomHandlers
+	history: HistoryHandlers
 	settings: Ref<BoardSettings>
 }
 
-
-
 export function useKeyboard(options: UseKeyboardOptions) {
 	const keydownEvent = (e: KeyboardEvent): void => {
-		const { zoom, settings } = options
+		const { zoom, history, settings } = options
 		if (e.code === 'F11') {
 			e.preventDefault()
 			e.stopImmediatePropagation()
@@ -62,10 +66,10 @@ export function useKeyboard(options: UseKeyboardOptions) {
 			zoom.decreaseZoom()
 		} else if (e.code === 'KeyZ') {
 			e.preventDefault()
-			console.log('undo')
+			history.undo()
 		} else if (e.code === 'KeyY') {
 			e.preventDefault()
-			console.log('redo')
+			history.redo()
 		}
 	}
 

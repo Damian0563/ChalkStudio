@@ -1,6 +1,7 @@
 export type Tool = 'pen' | 'eraser' | 'pan'
 
 export type StickyNote = {
+	groupId?: string
 	text: string
 	font: string
 	fontSize: number
@@ -33,8 +34,15 @@ export type BoardUser = {
 	color: string
 }
 
+export type HistoryEvent = {
+	type: 'undo' | 'redo'
+	id: string
+	before: object | null
+	after: object | null
+}
+
 export type BoardEvent = {
-	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move'
+	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-delete'
 	user: string
 	data: any
 	color?: string

@@ -39,6 +39,7 @@ export type HistoryEvent = {
 	id: string
 	before: object | null
 	after: object | null
+	stub: boolean
 }
 
 export type BoardEvent = {

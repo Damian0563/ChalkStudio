@@ -9,7 +9,8 @@
 				<v-layer ref="layerRef" />
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
-				v-model:tool="tool" @add-note="positionNote($event)" @undo="handleUndo()" @redo="handleRedo()" />
+				v-model:tool="tool" @add-note="positionNote($event)" @undo="closeEditorFor(undo())"
+				@redo="closeEditorFor(redo())" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
 			<Settings v-model:settings="settings" />
@@ -154,21 +155,19 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		const layer = getLayer()
 		const group = layer?.findOne(`#${event.data?.attrs?.id}`) as KonvaTypes.Group | undefined
 		if (!layer || !group) return
+		closeEditorFor(group.id())
 		group.destroy()
 		layer.batchDraw()
+	} else if (event.type === 'undo' || event.type === 'redo') {
+		closeEditorFor(receiveRemoteEvent(event))
 	}
 	if (event.type !== 'undo' && event.type !== 'redo') recordEvent(event as BoardEvent)
 }
 
-const handleUndo = () => {
-	const id = undo()
+const closeEditorFor = (id: string | undefined) => {
 	if (id && id === noteConfig.value.groupId) cancelNoteEdit()
 }
 
-const handleRedo = () => {
-	const id = redo()
-	if (id && id === noteConfig.value.groupId) cancelNoteEdit()
-}
 
 const { send, join, leave } = useBoardWebSocket({
 	room,
@@ -180,7 +179,8 @@ const { send, join, leave } = useBoardWebSocket({
 	},
 })
 
-const { undo, redo, recordEvent } = useHistory({
+
+const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 	getLayer,
 	getStage,
 	send,
@@ -188,15 +188,16 @@ const { undo, redo, recordEvent } = useHistory({
 		if (isStickyNoteTarget(node, getStage())) attachStickyNoteHandlers(node as KonvaTypes.Group)
 	},
 })
+
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value })
+
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
 useKeyboard({
 	zoom: { increaseZoom, decreaseZoom },
-	history: { undo: handleUndo, redo: handleRedo },
+	history: { undo: () => closeEditorFor(undo()), redo: () => closeEditorFor(redo()) },
 	settings,
 })
-
 
 
 watch(noteConfig, () => {

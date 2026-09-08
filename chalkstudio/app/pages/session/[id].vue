@@ -125,8 +125,17 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		layer.batchDraw()
 		trackPresence(event.user, { x, y, color: event.color })
 		if (event.type === 'drawEnd') remoteLines.delete(lineId)
-	} else if (event.type === 'join' || event.type === 'leave') {
+	} else if (event.type === 'join') {
 		applyRoster(event)
+		if (event.user === user.value) {
+			if (rosterPeers(event).length === 0) void loadPage()
+		} else if (isStateProvider(event)) {
+			send(JSON.stringify({ type: 'state', user: user.value, target: event.user, data: saveBoard() }))
+		}
+	} else if (event.type === 'leave') {
+		applyRoster(event)
+	} else if (event.type === 'state' && event.target === user.value && event.data) {
+		void loadPage(event.data)
 	} else if (event.type === 'pan') {
 		updatePan(event.user, event.data.x, event.data.y)
 	} else if (event.type === 'stickyNote-new') {
@@ -170,9 +179,9 @@ const closeEditorFor = (id: string | undefined) => {
 }
 
 
-const { send, join, leave } = useBoardWebSocket({
+const { send, join, leave, rosterPeers, isStateProvider } = useBoardWebSocket({
 	room,
-	userId: user.value,
+	user: user.value,
 	onEvent: handleBoardEvent,
 	onError: (error) => {
 		console.error(error)
@@ -200,7 +209,7 @@ useKeyboard({
 	settings,
 })
 const boardMeta = useState<BoardMeta | undefined>('boardMeta')
-const { applyBoardState, saveBoardState, autoSaveBoardState } = useBoardState({ getStage, quickNotice, loading })
+const { loadPage, saveBoard, saveBoardState, autoSaveBoardState } = useBoardState({ getStage, quickNotice, loading, room })
 
 
 watch(noteConfig, () => {
@@ -213,21 +222,25 @@ const setViewportSize = () => {
 }
 
 let interval: number
+const flushBoardState = () => autoSaveBoardState()
 onMounted(() => {
 	loading.value = true
+	join()
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
+	window.addEventListener('beforeunload', flushBoardState)
 	document.addEventListener('fullscreenchange', syncFocusModeWithFullscreen)
-	join()
 	loading.value = false
-	interval = setInterval(autoSaveBoardState, 1000)
+	interval = setInterval(autoSaveBoardState, 60_000)
 })
 
 onUnmounted(() => {
 	if (settings.value.focusMode) exitFullscreen()
 	window.removeEventListener('resize', setViewportSize)
+	window.removeEventListener('beforeunload', flushBoardState)
 	document.removeEventListener('fullscreenchange', syncFocusModeWithFullscreen)
 	clearInterval(interval)
+	flushBoardState()
 	leave()
 })
 

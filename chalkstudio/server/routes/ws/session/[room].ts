@@ -20,21 +20,31 @@ const spriteColors: string[] = [
 	'#06b6d4', // cyan
 	'#84cc16', // lime
 ]
-const roomUsers = new Map<string, Map<string, BoardUser>>()
-function getRoomUsers(room: string): Map<string, BoardUser> {
-	let users = roomUsers.get(room)
-	if (!users) {
-		users = new Map<string, BoardUser>()
-		roomUsers.set(room, users)
+type RoomMember = BoardUser & { peer: Peer }
+const roomMembers = new Map<string, Map<string, RoomMember>>()
+
+function getRoomMembers(room: string): Map<string, RoomMember> {
+	let members = roomMembers.get(room)
+	if (!members) {
+		members = new Map<string, RoomMember>()
+		roomMembers.set(room, members)
 	}
-	return users
+	return members
+}
+
+function roster(room: string): Record<string, BoardUser> {
+	const members = roomMembers.get(room)
+	if (!members) return {}
+	return Object.fromEntries(
+		[...members].map(([id, { peer: _peer, ...user }]) => [id, user]),
+	)
 }
 
 function removeUser(room: string, user: string): void {
-	const users = roomUsers.get(room)
-	if (!users) return
-	users.delete(user)
-	if (users.size === 0) roomUsers.delete(room)
+	const members = roomMembers.get(room)
+	if (!members) return
+	members.delete(user)
+	if (members.size === 0) roomMembers.delete(room)
 }
 
 export default defineWebSocketHandler({
@@ -50,11 +60,17 @@ export default defineWebSocketHandler({
 		try {
 			const event = message.json() as Record<string, unknown>
 			const room = peer.context?.room as string
-			const users = getRoomUsers(room)
+			if (event.type === 'state') {
+				const target = event.target as string | undefined
+				const targetPeer = target ? roomMembers.get(room)?.get(target)?.peer : undefined
+				targetPeer?.send(JSON.stringify(event))
+				return
+			}
+			const members = getRoomMembers(room)
 			if (event.type === 'join') {
 				const takenColors = new Set<string>()
 				peer.context.color = spriteColors[Math.floor(Math.random() * spriteColors.length)]
-				for (const user of users.values()) {
+				for (const user of members.values()) {
 					takenColors.add(user.color)
 				}
 				const availableColors: string[] = spriteColors.filter((color) => !takenColors.has(color))
@@ -64,11 +80,12 @@ export default defineWebSocketHandler({
 					peer.context.color = availableColors.length > 0 ? availableColors[Math.floor(Math.random() * availableColors.length)] : "#000000"
 				}
 				peer.context.user = event.user as string
-				users.set(event.user as string, {
+				members.set(event.user as string, {
 					name: event.user as string,
 					color: peer.context.color as string,
 					x: 0,
 					y: 0,
+					peer,
 				})
 			} else if (event.type === 'leave') {
 				removeUser(room, event.user as string)
@@ -76,7 +93,7 @@ export default defineWebSocketHandler({
 			const payload = JSON.stringify({
 				...event,
 				color: peer.context.color,
-				others: Object.fromEntries(roomUsers.get(room) ?? []),
+				others: roster(room),
 			})
 			peer.publish(room, payload)
 			if (event.type === 'join' || event.type === 'leave') {
@@ -96,7 +113,7 @@ export default defineWebSocketHandler({
 				JSON.stringify({
 					type: 'leave',
 					user,
-					others: Object.fromEntries(roomUsers.get(room) ?? []),
+					others: roster(room),
 				}),
 			)
 		}

@@ -7,8 +7,28 @@ type useBoardStateOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
 	quickNotice: Ref<QuickNotice | undefined>
 	loading: Ref<boolean>
+	room: ComputedRef<string>
 }
 const useBoardState = (options: useBoardStateOptions) => {
+	const loaded = ref(false)
+	const storageKey = (): string => `board-${options.room.value}`
+	const loadPage = async (boardState?: string | undefined): Promise<void> => {
+		if (loaded.value) return
+		options.loading.value = true
+		loaded.value = true
+		if (boardState) applyBoardState(boardState)
+		else if (localStorage.getItem(storageKey())) applyBoardState(localStorage.getItem(storageKey()) as string)
+		else {
+			//fetch from server
+			try {
+
+			} catch {
+				loaded.value = false
+				options.quickNotice.value = { message: 'Error loading board', type: 'error' }
+			}
+		}
+		options.loading.value = false
+	}
 	const applyBoardState = (boardState: string): void => {
 		console.log('applyBoardState', boardState)
 	}
@@ -36,13 +56,16 @@ const useBoardState = (options: useBoardStateOptions) => {
 		}
 	}
 	const autoSaveBoardState = (): string => {
+		if (!loaded.value) return ''
 		const board = saveBoard() === '' ? '{}' : saveBoard()
-		localStorage.setItem('board', board)
+		localStorage.setItem(storageKey(), board)
 		return board
 	}
 
 	return {
-		applyBoardState,
+		loaded,
+		loadPage,
+		saveBoard,
 		saveBoardState,
 		autoSaveBoardState,
 	}

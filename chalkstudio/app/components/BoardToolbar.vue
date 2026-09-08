@@ -6,6 +6,11 @@
 			<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
 			<div class="flex items-center gap-1 overflow-x-auto px-2 py-1.5 sm:gap-1.5 sm:px-3">
 				<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Tools">
+					<button type="button" @click="emit('saveBoardState')"
+						class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-chalk/[0.06]"
+						title="Save">
+						<Icon name="lucide:save" class="h-4 w-4 shrink-0" aria-hidden="true" />
+					</button>
 					<button ref="penButtonRef" type="button" title="Pen"
 						class="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors" :class="tool === 'pen'
 							? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
@@ -249,8 +254,9 @@ const { chalks, strokes } = useStrokeConfig()
 const { papers, maxLength, noteConfig, isValid, submit, availableTextColors, availableFonts, availableFontSizes, availableWeights, stepStickyNote } = useStickyNotes()
 const emit = defineEmits<{
 	addNote: [note: StickyNote]
-	undo: [value: void]
-	redo: [value: void]
+	undo: []
+	redo: []
+	saveBoardState: []
 }>()
 
 

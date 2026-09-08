@@ -34,16 +34,29 @@ const extractTextFromGroup = (group: SerializedNode | null | undefined): string 
 }
 
 const useHistory = (options: UseHistoryOptions) => {
-	const MAX_HISTORY = 20
+	const MAX_HISTORY = 40
 	const history: HistoryEntry[] = []
 	const redoBuffer: HistoryEntry[] = []
+	const dragOrigins = new Map<string, object>()
+	const push = (entry: HistoryEntry) => {
+		history.push(entry)
+		redoBuffer.length = 0
+		if (history.length > MAX_HISTORY) history.shift()
+	}
+
 	const recordEvent = (event: BoardEvent, before?: object | null) => {
 		const layer = options.getLayer()
 		if (!layer) return
 		const id = event.data?.attrs?.id as string | undefined
 		if (!id) return
-		if (event.type === 'drawEnd' || event.type === 'stickyNote-new') history.push({ id, before: null, after: event.data, stub: false })
-		else if (event.type === 'stickyNote-edit') {
+		if (event.type === 'drawEnd' || event.type === 'stickyNote-new') push({ id, before: null, after: event.data, stub: false })
+		else if (event.type === 'stickyNote-dragStart') dragOrigins.set(id, event.data)
+		else if (event.type === 'stickyNote-dragEnd') {
+			const origin = dragOrigins.get(id) ?? before ?? null
+			dragOrigins.delete(id)
+			if (!origin || JSON.stringify(origin) === JSON.stringify(event.data)) return
+			push({ id, before: origin, after: event.data, stub: false })
+		} else if (event.type === 'stickyNote-edit') {
 			if (before && JSON.stringify(before) === JSON.stringify(event.data)) return
 			const isTextEdit = extractTextFromGroup(before as SerializedNode) !== extractTextFromGroup(event.data as SerializedNode)
 			const open = history[history.length - 1]
@@ -52,10 +65,8 @@ const useHistory = (options: UseHistoryOptions) => {
 				redoBuffer.length = 0
 				return
 			}
-			history.push({ id, before: before ?? null, after: event.data, stub: isTextEdit })
-		} else if (event.type === 'stickyNote-delete') history.push({ id, before: event.data, after: null, stub: false })
-		redoBuffer.length = 0
-		if (history.length > MAX_HISTORY) history.shift()
+			push({ id, before: before ?? null, after: event.data, stub: isTextEdit })
+		} else if (event.type === 'stickyNote-delete') push({ id, before: event.data, after: null, stub: false })
 	}
 
 	const restore = (layer: KonvaTypes.Layer, id: string, state: object | null) => {

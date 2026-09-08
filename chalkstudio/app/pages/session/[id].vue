@@ -9,8 +9,8 @@
 				<v-layer ref="layerRef" />
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
-				v-model:tool="tool" @add-note="positionNote($event)" @undo="closeEditorFor(undo())"
-				@redo="closeEditorFor(redo())" />
+				v-model:tool="tool" @save-board-state="saveBoardState(boardMeta)" @add-note="positionNote($event)"
+				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
 			<Settings v-model:settings="settings" />
@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, Tool, BoardSettings, HistoryEvent } from '~/types/board'
+import type { BoardEvent, Tool, BoardSettings, HistoryEvent, BoardMeta } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
 definePageMeta({
 	layout: 'blank',
@@ -143,13 +143,14 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		if (!layer || !group) return
 		applyNoteEdit(group, event.data.note)
 		trackPresence(event.user, event.data.pos as { x: number; y: number })
-	} else if (event.type === 'stickyNote-move') {
+	} else if (event.type === 'stickyNote-move' || event.type === 'stickyNote-dragStart' || event.type === 'stickyNote-dragEnd') {
 		const layer = getLayer()
-		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
+		const pos = event.type === 'stickyNote-move' ? event.data : event.data?.attrs
+		const group = layer?.findOne(`#${pos?.id}`) as KonvaTypes.Group | undefined
 		if (!layer || !group) return
-		group.x(event.data.x)
-		group.y(event.data.y)
-		trackPresence(event.user, { x: event.data.x, y: event.data.y })
+		group.position({ x: pos.x, y: pos.y })
+		if (event.type === 'stickyNote-dragEnd') group.draggable(false)
+		trackPresence(event.user, { x: pos.x, y: pos.y })
 		layer.batchDraw()
 	} else if (event.type === 'stickyNote-delete') {
 		const layer = getLayer()
@@ -198,6 +199,8 @@ useKeyboard({
 	history: { undo: () => closeEditorFor(undo()), redo: () => closeEditorFor(redo()) },
 	settings,
 })
+const boardMeta = useState<BoardMeta | undefined>('boardMeta')
+const { applyBoardState, saveBoardState, autoSaveBoardState } = useBoardState({ getStage, quickNotice, loading })
 
 
 watch(noteConfig, () => {
@@ -209,6 +212,7 @@ const setViewportSize = () => {
 	viewportHeight.value = window.innerHeight
 }
 
+let interval: number
 onMounted(() => {
 	loading.value = true
 	setViewportSize()
@@ -216,12 +220,14 @@ onMounted(() => {
 	document.addEventListener('fullscreenchange', syncFocusModeWithFullscreen)
 	join()
 	loading.value = false
+	interval = setInterval(autoSaveBoardState, 1000)
 })
 
 onUnmounted(() => {
 	if (settings.value.focusMode) exitFullscreen()
 	window.removeEventListener('resize', setViewportSize)
 	document.removeEventListener('fullscreenchange', syncFocusModeWithFullscreen)
+	clearInterval(interval)
 	leave()
 })
 

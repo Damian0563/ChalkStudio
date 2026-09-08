@@ -76,6 +76,15 @@ const availableFontSizes: number[] = [
 ] as const
 
 
+// snapshots handed to history must be replayable: the discard button is a
+// transient overlay and `draggable` is only ever armed for the current drag
+const serializeNote = (group: KonvaTypes.Group): Record<string, any> => {
+	const data = group.toObject() as { attrs?: Record<string, any>; children?: { attrs?: Record<string, any> }[] }
+	if (data.attrs) data.attrs.draggable = false
+	if (Array.isArray(data.children)) data.children = data.children.filter((child) => child.attrs?.name !== STICKY_DISCARD_NAME)
+	return data
+}
+
 const NOTE_MAX_LENGTH = 280
 const NOTE_WIDTH = 160
 const NOTE_MIN_HEIGHT = 80
@@ -245,8 +254,9 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		})
 		button.on('click.sticky tap.sticky', (e) => {
 			e.cancelBubble = true
-			options?.recordEvent?.({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data: parent.toObject() })
-			options?.send?.(JSON.stringify({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data: parent.toObject() }))
+			const data = serializeNote(parent)
+			options?.recordEvent?.({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data })
+			options?.send?.(JSON.stringify({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data }))
 			if (editingGroup === parent) cancelNoteEdit()
 			parent.destroy()
 			options?.getLayer()?.batchDraw()
@@ -289,18 +299,26 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.on('mouseenter.sticky', (_) => {
 			if (noteConfig.value.draggable) stage.container().style.cursor = 'grab'
 		})
-		group.on('dragstart.sticky dragmove.sticky', (e) => {
-			if (!noteConfig.value.draggable || Date.now() - lastWsMessage < wsThrottle) return
+		group.on('dragstart.sticky', (e) => {
+			e.cancelBubble = true
 			stage.container().style.cursor = 'grabbing'
+			const data = serializeNote(group)
+			options?.recordEvent?.({ type: 'stickyNote-dragStart', user: editor, data })
+			send(JSON.stringify({ type: 'stickyNote-dragStart', user: editor, data }))
+		})
+		group.on('dragmove.sticky', (e) => {
+			e.cancelBubble = true
+			if (Date.now() - lastWsMessage < wsThrottle) return
 			lastWsMessage = Date.now()
 			send(JSON.stringify({ type: 'stickyNote-move', user: editor, data: { id: group.id(), x: group.x(), y: group.y() } }))
-			e.cancelBubble = true
 		})
 		group.on('dragend.sticky', (_) => {
 			noteConfig.value.draggable = false
 			group.draggable(false)
 			stage.container().style.cursor = 'default'
-			send(JSON.stringify({ type: 'stickyNote-move', user: editor, data: { id: group.id(), x: group.x(), y: group.y() } }))
+			const data = serializeNote(group)
+			options?.recordEvent?.({ type: 'stickyNote-dragEnd', user: editor, data })
+			send(JSON.stringify({ type: 'stickyNote-dragEnd', user: editor, data }))
 		})
 		group.on('click.sticky tap.sticky', () => {
 			const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
@@ -330,7 +348,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
 		const rect = group.findOne('Rect') as KonvaTypes.Rect | undefined
 		if (!textNode || !rect) return
-		const before = group.toObject()
+		const before = serializeNote(group)
 		const font = typeof data.font === 'string' ? data.font : textNode.fontFamily()
 		const fontSize = typeof data.fontSize === 'number' ? data.fontSize : textNode.fontSize()
 		const fontWeight = data.fontWeight !== undefined ? data.fontWeight.value : Number(textNode.fontStyle())
@@ -344,7 +362,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		if (typeof data.draggable === 'boolean') group.draggable(data.draggable)
 		rect.height(Math.max(NOTE_MIN_HEIGHT, textNode.height() + NOTE_PADDING * 2))
 		layer.batchDraw()
-		options?.recordEvent?.({ type: 'stickyNote-edit', user: options?.getUser?.() || "", data: group.toObject() }, before)
+		options?.recordEvent?.({ type: 'stickyNote-edit', user: options?.getUser?.() || "", data: serializeNote(group) }, before)
 	}
 
 	const cancelNoteEdit = () => {

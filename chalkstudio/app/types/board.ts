@@ -1,5 +1,12 @@
 export type Tool = 'pen' | 'eraser' | 'pan'
 
+export type BoardMeta = {
+	id: string
+	title: string
+	image: Blob
+	data: string
+}
+
 export type StickyNote = {
 	groupId?: string
 	text: string
@@ -43,7 +50,7 @@ export type HistoryEvent = {
 }
 
 export type BoardEvent = {
-	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-delete'
+	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete'
 	user: string
 	data: any
 	color?: string

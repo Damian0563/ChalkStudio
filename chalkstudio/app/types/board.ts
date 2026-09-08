@@ -50,9 +50,11 @@ export type HistoryEvent = {
 }
 
 export type BoardEvent = {
-	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete'
+	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'state' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete'
 	user: string
 	data: any
 	color?: string
+	// only set on `state`: the joining user the snapshot is addressed to
+	target?: string
 	others?: Record<string, BoardUser>
 }

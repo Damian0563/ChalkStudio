@@ -71,6 +71,7 @@ const { user, users, applyRoster, trackPresence, updatePan } = useBoardUsers()
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
 const isDrawing = ref(false)
+let websocketStateTimeout: number | undefined
 const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
 	width: viewportWidth.value,
@@ -127,14 +128,15 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		if (event.type === 'drawEnd') remoteLines.delete(lineId)
 	} else if (event.type === 'join') {
 		applyRoster(event)
-		if (event.user === user.value) {
-			if (rosterPeers(event).length === 0) void loadPage()
-		} else if (isStateProvider(event)) {
+		if (event.user === user.value && rosterPeers(event).length === 0) void loadPage()
+		else if (isStateProvider(event)) {
 			send(JSON.stringify({ type: 'state', user: user.value, target: event.user, data: saveBoard() }))
+			websocketStateTimeout = setTimeout(() => void loadPage(saveBoard()), wsTimeout)
 		}
 	} else if (event.type === 'leave') {
 		applyRoster(event)
 	} else if (event.type === 'state' && event.target === user.value && event.data) {
+		clearTimeout(websocketStateTimeout)
 		void loadPage(event.data)
 	} else if (event.type === 'pan') {
 		updatePan(event.user, event.data.x, event.data.y)
@@ -190,16 +192,15 @@ const { send, join, leave, rosterPeers, isStateProvider } = useBoardWebSocket({
 })
 
 
+const restoreNode = (node: KonvaTypes.Node) => restoreStickyNote(node)
 const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 	getLayer,
 	getStage,
 	send,
-	onRestore: (node) => {
-		if (isStickyNoteTarget(node, getStage())) attachStickyNoteHandlers(node as KonvaTypes.Group)
-	},
+	onRestore: restoreNode,
 })
 
-const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget } =
+const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value })
 
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
@@ -209,7 +210,7 @@ useKeyboard({
 	settings,
 })
 const boardMeta = useState<BoardMeta | undefined>('boardMeta')
-const { loadPage, saveBoard, saveBoardState, autoSaveBoardState } = useBoardState({ getStage, quickNotice, loading, room })
+const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode })
 
 
 watch(noteConfig, () => {
@@ -222,13 +223,12 @@ const setViewportSize = () => {
 }
 
 let interval: number
-const flushBoardState = () => autoSaveBoardState()
 onMounted(() => {
 	loading.value = true
 	join()
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
-	window.addEventListener('beforeunload', flushBoardState)
+	window.addEventListener('beforeunload', autoSaveBoardState)
 	document.addEventListener('fullscreenchange', syncFocusModeWithFullscreen)
 	loading.value = false
 	interval = setInterval(autoSaveBoardState, 60_000)
@@ -237,10 +237,10 @@ onMounted(() => {
 onUnmounted(() => {
 	if (settings.value.focusMode) exitFullscreen()
 	window.removeEventListener('resize', setViewportSize)
-	window.removeEventListener('beforeunload', flushBoardState)
+	window.removeEventListener('beforeunload', autoSaveBoardState)
 	document.removeEventListener('fullscreenchange', syncFocusModeWithFullscreen)
 	clearInterval(interval)
-	flushBoardState()
+	autoSaveBoardState()
 	leave()
 })
 

@@ -394,6 +394,10 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		return false
 	}
 
+	const restoreStickyNote = (node: KonvaTypes.Node): void => {
+		if (isStickyNoteTarget(node, options?.getStage())) attachStickyNoteHandlers(node as KonvaTypes.Group)
+	}
+
 
 	return {
 		papers: STICKY_PAPERS,
@@ -421,5 +425,6 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		updateNote,
 		cancelNoteEdit,
 		isStickyNoteTarget,
+		restoreStickyNote,
 	}
 }

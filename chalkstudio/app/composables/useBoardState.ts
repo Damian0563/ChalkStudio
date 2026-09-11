@@ -5,13 +5,17 @@ import type { Ref } from 'vue'
 
 type useBoardStateOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
+	getLayer: () => KonvaTypes.Layer | undefined
 	quickNotice: Ref<QuickNotice | undefined>
 	loading: Ref<boolean>
 	room: ComputedRef<string>
+	onRestore?: (node: KonvaTypes.Node) => void
 }
 const useBoardState = (options: useBoardStateOptions) => {
 	const loaded = ref(false)
 	const storageKey = (): string => `board-${options.room.value}`
+	const wsTimeout = 3000
+	const Konva = useKonva()
 	const loadPage = async (boardState?: string | undefined): Promise<void> => {
 		if (loaded.value) return
 		options.loading.value = true
@@ -30,7 +34,26 @@ const useBoardState = (options: useBoardStateOptions) => {
 		options.loading.value = false
 	}
 	const applyBoardState = (boardState: string): void => {
-		console.log('applyBoardState', boardState)
+		const layer = options.getLayer()
+		if (!layer) return
+		const parsedState = JSON.parse(boardState)
+		parsedState?.children?.forEach((child: any) => {
+			if (child.className === 'Layer') {
+				const actualChildren = child.children
+				actualChildren.forEach((child: any) => {
+					if (child.className === 'Line') {
+						const node = Konva.Node.create(child)
+						layer.add(node)
+						layer.batchDraw()
+					} else if (child.className === 'Group') {
+						const group = Konva.Node.create(child) as KonvaTypes.Group
+						layer.add(group)
+						options.onRestore?.(group)
+						layer.batchDraw()
+					}
+				})
+			}
+		})
 	}
 	const saveBoard = (): string => {
 		const stage = options?.getStage()
@@ -68,6 +91,7 @@ const useBoardState = (options: useBoardStateOptions) => {
 		saveBoard,
 		saveBoardState,
 		autoSaveBoardState,
+		wsTimeout,
 	}
 }
 

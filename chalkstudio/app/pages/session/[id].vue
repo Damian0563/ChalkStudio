@@ -70,9 +70,7 @@ const { user, users, applyRoster, trackPresence, updatePan } = useBoardUsers()
 
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
-const isDrawing = ref(false)
 let websocketStateTimeout: any
-const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
 	width: viewportWidth.value,
 	height: viewportHeight.value,
@@ -80,13 +78,6 @@ const stageConfig = computed(() => ({
 }))
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined
-const getBoardPointer = () => {
-	const stage = getStage()
-	const layer = getLayer()
-	const pos = stage?.getPointerPosition()
-	if (!stage || !layer || !pos) return undefined
-	return layer.getAbsoluteTransform().copy().invert().point(pos)
-}
 
 const { popUpSprite, displayUserLocation } = useBoardPopUp({
 	getLayer,
@@ -203,6 +194,21 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value })
 
+const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
+	getStage,
+	getLayer,
+	send,
+	recordEvent,
+	getUser: () => user.value,
+	tool,
+	color,
+	strokeWidth,
+	penPanelOpen,
+	isEditing,
+	cancelNoteEdit,
+	isStickyNoteTarget,
+})
+
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })
 useKeyboard({
 	zoom: { increaseZoom, decreaseZoom },
@@ -246,64 +252,5 @@ onUnmounted(() => {
 
 const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
 	e.evt.preventDefault()
-}
-
-const handleMouseDown = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
-	if (e.evt.button === 2 || tool.value === 'pan') return
-	if (isStickyNoteTarget(e.target, getStage())) return
-	if (isEditing.value) {
-		cancelNoteEdit()
-		return
-	}
-	if (penPanelOpen.value) {
-		penPanelOpen.value = false
-		return
-	}
-	e.evt.preventDefault()
-	const layer = getLayer()
-	const pos = getBoardPointer()
-	if (!layer || !pos) return
-	const isEraser = tool.value === 'eraser'
-	isDrawing.value = true
-	currentLine.value = new Konva.Line({
-		id: crypto.randomUUID(),
-		points: [pos.x, pos.y, pos.x, pos.y],
-		stroke: isEraser ? '#000000' : color.value,
-		strokeWidth: strokeWidth.value,
-		tension: 0.5,
-		lineCap: 'round',
-		lineJoin: 'round',
-		globalCompositeOperation: isEraser ? 'destination-out' : 'source-over',
-	})
-	send(JSON.stringify({ type: 'drawStart', user: user.value, data: currentLine.value?.toObject() }))
-	layer.add(currentLine.value)
-}
-
-const lastWsMessage = ref(Date.now())
-const handleMouseMove = () => {
-	if (!isDrawing.value || !currentLine.value) return
-	const pos = getBoardPointer()
-	if (!pos) return
-	const line = currentLine.value
-	const points = line.points()
-	points.push(pos.x, pos.y)
-	line.points(points)
-	getLayer()?.batchDraw()
-	if (Date.now() - lastWsMessage.value < 50) return
-	lastWsMessage.value = Date.now()
-	send(JSON.stringify({ type: 'draw', user: user.value, data: currentLine.value.toObject() }))
-}
-
-const handleMouseUp = () => {
-	const pos = getBoardPointer()
-	if (tool.value === 'pan' && pos) {
-		send(JSON.stringify({ type: 'pan', user: user.value, data: { x: pos.x, y: pos.y } }))
-		return
-	}
-	if (!currentLine.value) return
-	isDrawing.value = false
-	send(JSON.stringify({ type: 'drawEnd', user: user.value, data: currentLine.value.toObject() }))
-	recordEvent({ type: 'drawEnd', user: user.value, data: currentLine.value.toObject() })
-	currentLine.value = undefined
 }
 </script>

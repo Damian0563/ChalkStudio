@@ -71,7 +71,7 @@ const { user, users, applyRoster, trackPresence, updatePan } = useBoardUsers()
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()
 const isDrawing = ref(false)
-let websocketStateTimeout: number | undefined
+let websocketStateTimeout: any
 const currentLine = ref<KonvaTypes.Line>()
 const stageConfig = computed(() => ({
 	width: viewportWidth.value,
@@ -222,7 +222,7 @@ const setViewportSize = () => {
 	viewportHeight.value = window.innerHeight
 }
 
-let interval: number
+let interval: any
 onMounted(() => {
 	loading.value = true
 	join()

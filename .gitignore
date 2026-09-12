@@ -1,4 +1,9 @@
 chalkstudio/node_modules/**
 chalkstudio/.nuxt/**
+chalkstudio/.env
 chalkstudio/.output/**
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup

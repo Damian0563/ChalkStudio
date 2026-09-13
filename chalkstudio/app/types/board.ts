@@ -20,7 +20,6 @@ export type StickyNote = {
 	bgColor: string
 	draggable: boolean
 	resizeable: boolean
-	// only carried once a note has been resized by hand, in board coordinates
 	width?: number
 	height?: number
 }
@@ -54,11 +53,10 @@ export type HistoryEvent = {
 }
 
 export type BoardEvent = {
-	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'state' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete'
+	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'state' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete' | 'stickyNote-transform'
 	user: string
 	data: any
 	color?: string
-	// only set on `state`: the joining user the snapshot is addressed to
 	target?: string
 	others?: Record<string, BoardUser>
 }

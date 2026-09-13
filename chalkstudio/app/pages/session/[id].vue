@@ -139,10 +139,11 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		trackPresence(event.user, { x: note.attrs.x, y: note.attrs.y, color: event.color })
 		layer.add(note)
 		layer.batchDraw()
-	} else if (event.type === 'stickyNote-edit') {
+	} else if (event.type === 'stickyNote-edit' || event.type === 'stickyNote-transform') {
 		const layer = getLayer()
 		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined
 		if (!layer || !group) return
+		event.type === 'stickyNote-transform' ? group.position({ x: event.data.pos.x, y: event.data.pos.y }) : null
 		applyNoteEdit(group, event.data.note)
 		trackPresence(event.user, event.data.pos as { x: number; y: number })
 	} else if (event.type === 'stickyNote-move' || event.type === 'stickyNote-dragStart' || event.type === 'stickyNote-dragEnd') {

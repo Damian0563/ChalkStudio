@@ -19,6 +19,10 @@ export type StickyNote = {
 	}
 	bgColor: string
 	draggable: boolean
+	resizeable: boolean
+	// only carried once a note has been resized by hand, in board coordinates
+	width?: number
+	height?: number
 }
 
 export type BoardSettings = {

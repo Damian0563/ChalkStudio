@@ -19,6 +19,10 @@ export const keyboardShortcuts: KeyboardShortcut[] = [
 		keys: ['Ctrl / ⌘', '−'],
 	},
 	{
+		description: 'Paste media from clipboard (image, pdf)',
+		keys: ['Ctrl / ⌘', 'V'],
+	},
+	{
 		description: 'Undo your changes',
 		keys: ['Ctrl / ⌘', 'Z'],
 	},

@@ -16,23 +16,41 @@
 					</button>
 				</div>
 
-				<div class="text-xs leading-relaxed text-chalk-faint">
-					Type to edit the note directly ·
-					<span class="font-semibold text-chalk">Esc</span> to finish
-				</div>
-				<div class="mt-1.5 flex items-center justify-between gap-2">
-					<p class="text-[0.6rem] tabular-nums text-chalk-faint/70" aria-hidden="true">
+				<div class="flex items-start justify-between gap-2">
+					<p class="text-xs leading-relaxed text-chalk-faint">
+						Type to edit the note directly ·
+						<span class="font-semibold text-chalk">Esc</span> to finish
+					</p>
+					<p class="shrink-0 pt-0.5 text-[0.6rem] tabular-nums text-chalk-faint/70" aria-hidden="true">
 						{{ noteConfig.text.length }}/{{ maxLength }}
 					</p>
-					<button type="button" @click="noteConfig.draggable = !noteConfig.draggable"
-						class="-mr-0.5 inline-flex h-6 items-center gap-1 rounded-md bg-coral px-2 text-[0.65rem] font-semibold text-chalk transition-colors hover:bg-coral-soft"
-						aria-label="Move note">
-						<Icon name="lucide:move" class="h-3 w-3 shrink-0" aria-hidden="true" />
+				</div>
+
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Arrange</p>
+				<div class="grid grid-cols-2 gap-1.5" role="group" aria-label="Arrange note">
+					<button type="button"
+						class="flex h-9 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-colors"
+						:class="noteConfig.draggable
+							? 'bg-coral text-chalk ring-1 ring-coral-soft hover:bg-coral-soft'
+							: 'text-chalk-faint ring-1 ring-chalk/10 hover:bg-chalk/[0.06] hover:text-chalk'"
+						:aria-label="noteConfig.draggable ? 'Stop moving note' : 'Move note'" :aria-pressed="noteConfig.draggable"
+						@click="noteConfig.draggable = !noteConfig.draggable">
+						<Icon name="lucide:move" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 						{{ noteConfig.draggable ? 'Moving' : 'Move' }}
+					</button>
+					<button type="button" @click="noteConfig.resizeable = !noteConfig.resizeable"
+						class="flex h-9 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-colors"
+						:class="noteConfig.resizeable
+							? 'bg-coral text-chalk ring-1 ring-coral-soft hover:bg-coral-soft'
+							: 'text-chalk-faint ring-1 ring-chalk/10 hover:bg-chalk/[0.06] hover:text-chalk'"
+						:aria-label="noteConfig.resizeable ? 'Stop resizing note' : 'Resize note'"
+						:aria-pressed="noteConfig.resizeable">
+						<Icon name="lucide:scaling" class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+						{{ noteConfig.resizeable ? 'Resizing' : 'Resize' }}
 					</button>
 				</div>
 
-				<p class="mb-1.5 mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Paper</p>
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Paper</p>
 				<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Note color">
 					<button v-for="paper in papers" :key="paper.value" type="button"
 						class="h-8 w-8 rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"

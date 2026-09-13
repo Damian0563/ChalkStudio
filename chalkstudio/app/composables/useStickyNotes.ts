@@ -435,7 +435,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			const note = describeNote(group)
 			options?.recordEvent?.({ type: 'stickyNote-edit', user: editor, data: serializeNote(group) }, resizeOrigin)
 			if (note) send(JSON.stringify({
-				type: 'stickyNote-edit',
+				type: 'stickyNote-transform',
 				user: editor,
 				data: { id: group.id(), note, pos: { x: group.x(), y: group.y() } },
 			}))

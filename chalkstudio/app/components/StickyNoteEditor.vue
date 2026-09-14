@@ -55,7 +55,7 @@
 					<button v-for="paper in papers" :key="paper.value" type="button"
 						class="h-8 w-8 rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
 						:class="noteConfig.bgColor === paper.value ? 'ring-2 ring-chalk/70 ring-offset-1 ring-offset-board-raised' : 'ring-1 ring-chalk/10'"
-						:style="{ backgroundColor: paper.value }" :aria-label="paper.name"
+						:style="paperBackgroundStyle(paper.value)" :aria-label="paper.name"
 						:aria-pressed="noteConfig.bgColor === paper.value" @click="noteConfig.bgColor = paper.value">
 					</button>
 				</div>
@@ -79,6 +79,19 @@
 						:aria-label="font.name" :aria-pressed="noteConfig.font === font.value"
 						@click="noteConfig.font = font.value">
 						Ag
+					</button>
+				</div>
+
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Text alignment</p>
+				<div class="flex h-9 items-center gap-0.5 rounded-lg p-0.5 ring-1 ring-chalk/10" role="group"
+					aria-label="Text alignment">
+					<button v-for="alignment in availableTextAlignments" :key="alignment.value" type="button"
+						class="flex h-full flex-1 items-center justify-center rounded-md transition-colors" :class="noteConfig.align === alignment.value
+							? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
+							: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" :aria-label="alignment.name"
+						:title="alignment.name" :aria-pressed="noteConfig.align === alignment.value"
+						@click="noteConfig.align = alignment.value">
+						<Icon :name="alignment.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
 				</div>
 
@@ -132,7 +145,7 @@
 
 <script setup lang="ts">
 import type { StickyNote } from '~/types/board'
-const { papers, availableTextColors, availableFonts, availableFontSizes, availableWeights, stepStickyNote } = useStickyNotes()
+const { papers, paperBackgroundStyle, availableTextColors, availableFonts, availableFontSizes, availableWeights, availableTextAlignments, stepStickyNote } = useStickyNotes()
 const isEditing = defineModel<boolean>('isEditing', { required: true })
 const noteConfig = defineModel<StickyNote>('noteConfig', { required: true })
 

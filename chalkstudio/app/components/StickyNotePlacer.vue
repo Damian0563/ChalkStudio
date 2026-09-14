@@ -21,6 +21,7 @@
 					fontFamily: note.font,
 					fontSize: `${note.fontSize}px`,
 					fontWeight: note.fontWeight.value,
+					textAlign: note.align,
 					lineHeight: 1,
 				}">
 					{{ note.text }}

@@ -129,7 +129,7 @@
 						<form @submit.prevent="submitNote">
 							<div class="relative">
 								<textarea ref="noteTextareaRef" v-model="noteConfig.text" rows="4" :maxlength="maxLength"
-									placeholder="Jot something down…"
+									placeholder="Write here…"
 									class="w-full resize-none rounded-lg p-3 leading-snug shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)] outline-none transition-shadow placeholder:text-board/40 focus:shadow-[inset_0_1px_2px_rgba(0,0,0,0.15),0_0_0_2px_rgba(245,240,232,0.35)]"
 									:style="{
 										backgroundColor: noteConfig.bgColor,
@@ -137,6 +137,7 @@
 										fontFamily: noteConfig.font,
 										fontSize: `${Math.min(noteConfig.fontSize, 24)}px`,
 										fontWeight: noteConfig.fontWeight.value,
+										textAlign: noteConfig.align,
 									}" aria-label="Note text" />
 								<span class="pointer-events-none absolute bottom-2.5 right-2.5 text-[0.6rem] tabular-nums text-board/40"
 									aria-hidden="true">{{ noteConfig.text.length }}/{{ maxLength }}</span>
@@ -147,8 +148,9 @@
 								<button v-for="paper in papers" :key="paper.value" type="button"
 									class="h-8 w-8 rounded-md shadow-[0_1px_2px_rgba(0,0,0,0.3)] transition-transform hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
 									:class="noteConfig.bgColor === paper.value ? 'ring-2 ring-chalk/70 ring-offset-1 ring-offset-board-raised' : 'ring-1 ring-chalk/10'"
-									:style="{ backgroundColor: paper.value }" :aria-label="paper.name"
-									:aria-pressed="noteConfig.bgColor === paper.value" @click="noteConfig.bgColor = paper.value">
+									:style="paperBackgroundStyle(paper.value)" :aria-label="paper.name"
+									:aria-pressed="noteConfig.bgColor === paper.value" :title="paper.name"
+									@click="noteConfig.bgColor = paper.value">
 								</button>
 							</div>
 
@@ -171,6 +173,21 @@
 									:aria-label="font.name" :aria-pressed="noteConfig.font === font.value"
 									@click="noteConfig.font = font.value">
 									Ag
+								</button>
+							</div>
+
+
+							<p class="mb-1.5 mt-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Text
+								alignment</p>
+							<div class="flex h-9 items-center gap-0.5 rounded-lg p-0.5 ring-1 ring-chalk/10" role="group"
+								aria-label="Text alignment">
+								<button v-for="alignment in availableTextAlignments" :key="alignment.value" type="button"
+									class="flex h-full flex-1 items-center justify-center rounded-md transition-colors" :class="noteConfig.align === alignment.value
+										? 'bg-chalk/10 text-chalk ring-1 ring-chalk/15'
+										: 'text-chalk-faint hover:bg-chalk/[0.06] hover:text-chalk'" :aria-label="alignment.name"
+									:title="alignment.name" :aria-pressed="noteConfig.align === alignment.value"
+									@click="noteConfig.align = alignment.value">
+									<Icon :name="alignment.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
 								</button>
 							</div>
 
@@ -255,7 +272,7 @@ const penButtonRef = ref<HTMLButtonElement>()
 const eraserButtonRef = ref<HTMLButtonElement>()
 const stickyButtonRef = ref<HTMLButtonElement>()
 const { chalks, strokes } = useStrokeConfig()
-const { papers, maxLength, noteConfig, isValid, submit, availableTextColors, availableFonts, availableFontSizes, availableWeights, stepStickyNote } = useStickyNotes()
+const { papers, paperBackgroundStyle, maxLength, noteConfig, isValid, submit, availableTextColors, availableFonts, availableFontSizes, availableWeights, availableTextAlignments, stepStickyNote } = useStickyNotes()
 const emit = defineEmits<{
 	addNote: [note: StickyNote]
 	undo: []

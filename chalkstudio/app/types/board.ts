@@ -20,6 +20,7 @@ export type StickyNote = {
 	bgColor: string
 	draggable: boolean
 	resizeable: boolean
+	align: 'left' | 'center' | 'right'
 	width?: number
 	height?: number
 }

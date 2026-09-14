@@ -12,13 +12,23 @@ const STICKY_PAPERS: { name: string; value: string }[] = [
 	{ name: 'Lavender paper', value: '#c4b4e8' },
 	{ name: 'Rose paper', value: '#d87e8e' },
 	{ name: 'Sage paper', value: '#a8b88e' },
-	{ name: 'Sand paper', value: '#d8c4a0' },
 	{ name: 'Teal paper', value: '#6eb8b0' },
 	{ name: 'Plum paper', value: '#a87ea8' },
 	{ name: 'Rust paper', value: '#c07a5c' },
 	{ name: 'Graphite paper', value: '#6e7580' },
 	{ name: 'Slate paper', value: '#9ba8b8' },
+	{ name: 'Transparent', value: '#00000000' },
 ] as const
+
+const isTransparentPaper = (value: string): boolean => /^#[0-9a-f]{6}00$/i.test(value)
+
+const TRANSPARENT_PAPER_STRIPES = 'repeating-linear-gradient(45deg, rgba(245, 240, 232, 0.85) 0 1px, rgba(245, 240, 232, 0) 1px 5px)'
+
+const paperBackgroundStyle = (value: string): { backgroundColor: string; backgroundImage?: string } =>
+	isTransparentPaper(value)
+		? { backgroundColor: 'transparent', backgroundImage: TRANSPARENT_PAPER_STRIPES }
+		: { backgroundColor: value }
+
 
 const availableTextColors: { name: string; value: string }[] = [
 	{ name: 'Ink black', value: '#000000' },
@@ -47,7 +57,11 @@ const availableWeights: { label: string; value: number }[] = [
 	{ label: 'Extra bold', value: 800 },
 ] as const
 
-
+const availableTextAlignments: { name: string; value: StickyNote['align']; icon: string }[] = [
+	{ name: 'Align left', value: 'left', icon: 'lucide:text-align-start' },
+	{ name: 'Align center', value: 'center', icon: 'lucide:text-align-center' },
+	{ name: 'Align right', value: 'right', icon: 'lucide:text-align-end' },
+] as const
 
 const ensureNoteFont = async (font: string, fontSize: number, fontWeight: number): Promise<void> => {
 	if (typeof document === 'undefined') return Promise.resolve()
@@ -78,7 +92,7 @@ const availableFontSizes: number[] = [
 const serializeNote = (group: KonvaTypes.Group): Record<string, any> => {
 	const data = group.toObject() as { attrs?: Record<string, any>; children?: { attrs?: Record<string, any> }[] }
 	if (data.attrs) data.attrs.draggable = false
-	if (Array.isArray(data.children)) data.children = data.children.filter((child) => child.attrs?.name !== STICKY_DISCARD_NAME)
+	if (Array.isArray(data.children)) data.children = data.children.filter((child) => child.attrs?.name !== DISCARD_BUTTON_NAME)
 	return data
 }
 
@@ -89,10 +103,7 @@ const NOTE_MAX_WIDTH = 480
 const NOTE_MIN_HEIGHT = 80
 const NOTE_PADDING = 12
 const STICKY_NOTE_NAME = 'sticky-note'
-const STICKY_DISCARD_NAME = 'sticky-discard'
 const STICKY_TRANSFORMER_NAME = 'sticky-transformer'
-const DISCARD_RADIUS = 11
-const DISCARD_ARM = 3
 const isSetupStickyNote: Ref<boolean> = ref(false)
 type NoteNodes = { rect: KonvaTypes.Rect; text: KonvaTypes.Text }
 const noteNodes = (group: KonvaTypes.Group): NoteNodes | null => {
@@ -147,10 +158,14 @@ const createDefaultNote = (): StickyNote => ({
 	bgColor: '#f5f0e8',
 	draggable: false,
 	resizeable: false,
+	align: 'left',
 })
 
 export const useStickyNotes = (options?: StickyNoteOptions) => {
 	const Konva = useKonva()
+	const { showDiscardButton: showGroupDiscardButton, hideDiscardButton } = useDiscardButton({
+		getLayer: () => options?.getLayer(),
+	})
 	const noteConfig: Ref<StickyNote> = ref(createDefaultNote())
 	const isValid = computed(() => noteConfig.value.text.trim().length > 0)
 	const submit = (): StickyNote | null => {
@@ -194,6 +209,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			fontFamily: note.font,
 			fontStyle: String(note.fontWeight.value),
 			fill: note.textColor,
+			align: note.align,
 			listening: false,
 		})
 		const rect = new Konva.Rect({
@@ -244,71 +260,15 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.off('.sticky')
 	}
 
-	const createDiscardButton = (parent: KonvaTypes.Group): KonvaTypes.Group => {
-		const button = new Konva.Group({
-			name: STICKY_DISCARD_NAME,
-			x: (noteNodes(parent)?.rect.width() || NOTE_WIDTH) - 2,
-			y: 2,
-			opacity: 0,
-			listening: true,
-		})
-		const circle = new Konva.Circle({
-			radius: DISCARD_RADIUS,
-			fill: '#1a2332',
-			stroke: '#f5f0e8',
-			strokeWidth: 1.5,
-			shadowColor: '#000',
-			shadowBlur: 6,
-			shadowOpacity: 0.35,
-			shadowOffsetY: 1,
-		})
-		const crossOptions = {
-			stroke: '#f5f0e8',
-			strokeWidth: 2,
-			lineCap: 'round' as const,
-			listening: false,
-		}
-		button.add(circle)
-		button.add(new Konva.Line({ points: [-DISCARD_ARM, -DISCARD_ARM, DISCARD_ARM, DISCARD_ARM], ...crossOptions }))
-		button.add(new Konva.Line({ points: [-DISCARD_ARM, DISCARD_ARM, DISCARD_ARM, -DISCARD_ARM], ...crossOptions }))
-		const stage = options?.getStage()
-		button.on('mouseenter.sticky', (e) => {
-			e.cancelBubble = true
-			circle.fill('#8e3b2f')
-			if (stage) stage.container().style.cursor = 'pointer'
-			button.getLayer()?.batchDraw()
-		})
-		button.on('mouseleave.sticky', (e) => {
-			e.cancelBubble = true
-			circle.fill('#1a2332')
-			if (stage) stage.container().style.cursor = 'default'
-			button.getLayer()?.batchDraw()
-		})
-		button.on('click.sticky tap.sticky', (e) => {
-			e.cancelBubble = true
-			const data = serializeNote(parent)
-			options?.recordEvent?.({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data })
-			options?.send?.(JSON.stringify({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data }))
-			if (editingGroup === parent) cancelNoteEdit()
-			parent.destroy()
-			options?.getLayer()?.batchDraw()
-		})
-		return button
-	}
-
 	const showDiscardButton = (group: KonvaTypes.Group) => {
-		if (group.findOne(`.${STICKY_DISCARD_NAME}`)) return
-		const button = createDiscardButton(group)
-		group.add(button)
-		button.to({ opacity: 1, duration: 0.12 })
-		group.getLayer()?.batchDraw()
-	}
-
-	const hideDiscardButton = (group: KonvaTypes.Group | null) => {
-		const button = group?.findOne(`.${STICKY_DISCARD_NAME}`)
-		if (!button || !group) return
-		button.destroy()
-		group.getLayer()?.batchDraw()
+		showGroupDiscardButton(group, {
+			onDiscard: (note) => {
+				const data = serializeNote(note)
+				options?.recordEvent?.({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data })
+				options?.send?.(JSON.stringify({ type: 'stickyNote-delete', user: options?.getUser?.() || "", data }))
+				if (editingGroup === note) cancelNoteEdit()
+			},
+		})
 	}
 
 	const detachNoteTransformer = (): void => {
@@ -383,6 +343,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			resizeable: false,
 			width: group.width(),
 			height: group.height(),
+			align: text.align() as 'left' | 'center' | 'right',
 		}
 	}
 
@@ -399,7 +360,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.listening(true)
 		group.name(STICKY_NOTE_NAME)
 		for (const child of group.getChildren()) {
-			child.listening(child.getClassName() === 'Rect' || child.name() === STICKY_DISCARD_NAME)
+			child.listening(child.getClassName() === 'Rect' || child.name() === DISCARD_BUTTON_NAME)
 		}
 		group.on('mousedown.sticky touchstart.sticky', (e) => {
 			e.cancelBubble = true
@@ -459,7 +420,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		group.on('click.sticky tap.sticky', () => {
 			const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
 			const rect = group.findOne('Rect') as KonvaTypes.Rect | undefined
-			if (!textNode) return
+			if (!textNode || !rect) return
 			if (editingGroup && editingGroup !== group) {
 				hideDiscardButton(editingGroup)
 				detachNoteTransformer()
@@ -472,8 +433,10 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			noteConfig.value.fontSize = textNode.fontSize()
 			noteConfig.value.fontWeight.value = Number(textNode.fontStyle())
 			noteConfig.value.textColor = (textNode.fill() as string) || '#000000'
+			noteConfig.value.align = (textNode.align() as StickyNote['align']) || 'left'
 			noteConfig.value.bgColor = (rect?.fill() as string) || STICKY_PAPERS[0]!.value
 			noteConfig.value.resizeable = false
+			if (noteConfig.value.bgColor === "#00000000") (rect.stroke("#f5f0e8"), rect.strokeWidth(1))
 			isEditing.value = true
 		})
 	}
@@ -498,8 +461,11 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		if (data.fontWeight !== undefined) textNode.fontStyle(String(fontWeight))
 		if (typeof data.fontSize === 'number') textNode.fontSize(data.fontSize)
 		if (typeof data.textColor === 'string') textNode.fill(data.textColor)
+		if (typeof data.align === 'string') textNode.align(data.align)
 		if (typeof data.bgColor === 'string') rect.fill(data.bgColor)
 		if (typeof data.draggable === 'boolean') group.draggable(data.draggable)
+		if (data.bgColor === "#00000000") (rect.stroke("#f5f0e8"), rect.strokeWidth(1))
+		else rect.strokeWidth(0)
 		layoutNote(group, typeof data.width === 'number' && typeof data.height === 'number'
 			? { width: data.width, height: data.height }
 			: undefined)
@@ -510,6 +476,8 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 	const cancelNoteEdit = () => {
 		detachNoteTransformer()
 		hideDiscardButton(editingGroup)
+		const rect = editingGroup?.findOne('Rect') as KonvaTypes.Rect | undefined
+		if (rect) rect.strokeWidth(0)
 		noteConfig.value.resizeable = false
 		editingGroup = null
 		isEditing.value = false
@@ -547,11 +515,13 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 
 	return {
 		papers: STICKY_PAPERS,
+		paperBackgroundStyle,
 		maxLength: NOTE_MAX_LENGTH,
 		availableTextColors,
 		availableFonts,
 		availableFontSizes,
 		availableWeights,
+		availableTextAlignments,
 		NOTE_WIDTH,
 		isSetupStickyNote,
 		noteConfig,

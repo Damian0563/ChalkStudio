@@ -104,6 +104,7 @@ const NOTE_MIN_HEIGHT = 80
 const NOTE_PADDING = 12
 const STICKY_NOTE_NAME = 'sticky-note'
 const STICKY_TRANSFORMER_NAME = 'sticky-transformer'
+const NOTE_TEXTAREA_EVENT = 'draw.noteTextarea'
 const isSetupStickyNote: Ref<boolean> = ref(false)
 type NoteNodes = { rect: KonvaTypes.Rect; text: KonvaTypes.Text }
 const noteNodes = (group: KonvaTypes.Group): NoteNodes | null => {
@@ -142,6 +143,7 @@ type StickyNoteOptions = {
 	send: (message: string) => void
 	getUser?: () => string
 	recordEvent?: (event: BoardEvent, before?: object | null) => void
+	getNoteTextarea?: () => HTMLTextAreaElement | undefined
 }
 
 const stickyNotePosition: Ref<{ x: number; y: number } | null> = ref(null)
@@ -347,6 +349,46 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 		}
 	}
 
+	const syncNoteTextarea = (): void => {
+		const textarea = options?.getNoteTextarea?.()
+		const nodes = editingGroup && noteNodes(editingGroup)
+		const container = options?.getStage()?.container()
+		if (!textarea || !nodes || !container) return
+		const { rect, text } = nodes
+		const [a, b, c, d, e, f] = text.getAbsoluteTransform().getMatrix()
+		const box = container.getBoundingClientRect()
+		Object.assign(textarea.style, {
+			width: `${text.width()}px`,
+			height: `${Math.max(0, rect.height() - text.y() - NOTE_PADDING)}px`,
+			transform: `translate(${box.left}px, ${box.top}px) matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`,
+			fontFamily: text.fontFamily(),
+			fontSize: `${text.fontSize()}px`,
+			fontWeight: text.fontStyle(),
+			lineHeight: String(text.lineHeight()),
+			letterSpacing: `${text.letterSpacing()}px`,
+			textAlign: text.align(),
+			caretColor: String(text.fill()),
+		})
+		textarea.scrollTop = 0
+	}
+
+	const openNoteTextarea = (text: string): void => {
+		const textarea = options?.getNoteTextarea?.()
+		const layer = options?.getLayer()
+		if (!textarea || !layer) return
+		textarea.value = text
+		syncNoteTextarea()
+		textarea.focus({ preventScroll: true })
+		textarea.setSelectionRange(text.length, text.length)
+		layer.off(NOTE_TEXTAREA_EVENT)
+		layer.on(NOTE_TEXTAREA_EVENT, syncNoteTextarea)
+	}
+
+	const closeNoteTextarea = (): void => {
+		options?.getLayer()?.off(NOTE_TEXTAREA_EVENT)
+		options?.getNoteTextarea?.()?.blur()
+	}
+
 	const attachStickyNoteHandlers = (group: KonvaTypes.Group, owner?: string) => {
 		detachStickyNoteHandlers(group)
 		hideDiscardButton(group)
@@ -438,6 +480,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			noteConfig.value.resizeable = false
 			if (noteConfig.value.bgColor === "#00000000") (rect.stroke("#f5f0e8"), rect.strokeWidth(1))
 			isEditing.value = true
+			openNoteTextarea(noteConfig.value.text)
 		})
 	}
 
@@ -474,6 +517,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 	}
 
 	const cancelNoteEdit = () => {
+		closeNoteTextarea()
 		detachNoteTransformer()
 		hideDiscardButton(editingGroup)
 		const rect = editingGroup?.findOne('Rect') as KonvaTypes.Rect | undefined

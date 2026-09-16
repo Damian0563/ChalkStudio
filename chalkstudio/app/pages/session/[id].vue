@@ -18,7 +18,7 @@
 				v-if="!settings.focusMode" />
 			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
 				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
-			<StickyNoteEditor v-model:is-editing="isEditing" v-model:note-config="noteConfig" :max-length="maxLength"
+			<StickyNoteEditor ref="noteEditorRef" v-model:is-editing="isEditing" v-model:note-config="noteConfig" :max-length="maxLength"
 				@close="cancelNoteEdit" />
 		</div>
 	</ClientOnly>
@@ -76,6 +76,7 @@ const stageConfig = computed(() => ({
 	height: viewportHeight.value,
 	draggable: tool.value === 'pan',
 }))
+const noteEditorRef = ref<{ textarea?: HTMLTextAreaElement }>()
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined
 
@@ -193,7 +194,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 })
 
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
-	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value })
+	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,

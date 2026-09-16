@@ -1,12 +1,16 @@
 <template>
 	<Teleport to="body">
+		<textarea ref="textareaRef" :value="noteConfig.text" :maxlength="maxLength" :tabindex="isEditing ? 0 : -1"
+			class="fixed left-0 top-0 z-20 m-0 origin-top-left resize-none overflow-hidden whitespace-pre-wrap break-words border-0 bg-transparent p-0 text-transparent outline-none selection:bg-coral/30"
+			:class="isEditing && !noteConfig.draggable ? 'pointer-events-auto' : 'pointer-events-none'"
+			aria-label="Sticky note text" spellcheck="false" autocomplete="off" @input="onInput" />
 		<Transition enter-active-class="transition duration-150 ease-out motion-reduce:transition-none"
 			enter-from-class="-translate-x-3 opacity-0" enter-to-class="translate-x-0 opacity-100"
 			leave-active-class="transition duration-100 ease-in motion-reduce:transition-none"
 			leave-from-class="translate-x-0 opacity-100" leave-to-class="-translate-x-3 opacity-0">
 			<div v-if="isEditing"
 				class="fixed left-6 top-6 z-30 w-60 rounded-3xl border border-chalk/10 bg-board-raised/95 p-5 shadow-[0_24px_60px_-16px_rgba(0,0,0,0.7)] backdrop-blur-sm"
-				role="dialog" aria-label="Sticky note options">
+				role="dialog" aria-label="Sticky note options" @mousedown.prevent>
 				<div class="mb-3 flex items-center justify-between">
 					<h2 class="font-display text-lg text-chalk">Sticky note</h2>
 					<button type="button"
@@ -82,7 +86,8 @@
 					</button>
 				</div>
 
-				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Text alignment</p>
+				<p class="mb-1.5 mt-4 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-chalk-faint">Text alignment
+				</p>
 				<div class="flex h-9 items-center gap-0.5 rounded-lg p-0.5 ring-1 ring-chalk/10" role="group"
 					aria-label="Text alignment">
 					<button v-for="alignment in availableTextAlignments" :key="alignment.value" type="button"
@@ -149,7 +154,7 @@ const { papers, paperBackgroundStyle, availableTextColors, availableFonts, avail
 const isEditing = defineModel<boolean>('isEditing', { required: true })
 const noteConfig = defineModel<StickyNote>('noteConfig', { required: true })
 
-const props = defineProps<{
+defineProps<{
 	maxLength: number
 }>()
 
@@ -159,23 +164,16 @@ const emit = defineEmits<{
 }>()
 
 
+const textareaRef = ref<HTMLTextAreaElement>()
+defineExpose({ textarea: textareaRef })
+const onInput = (e: Event) => {
+	noteConfig.value.text = (e.target as HTMLTextAreaElement).value
+}
+
 const onKeydown = (e: KeyboardEvent) => {
-	if (e.key === 'Escape') {
-		e.preventDefault()
-		emit('close')
-		return
-	}
-	if (e.metaKey || e.ctrlKey || e.altKey) return
-	if (e.key === 'Backspace') {
-		noteConfig.value.text = noteConfig.value.text.slice(0, -1)
-	} else if (e.key === 'Enter') {
-		if (noteConfig.value.text.length < props.maxLength) noteConfig.value.text += '\n'
-	} else if (e.key.length === 1) {
-		if (noteConfig.value.text.length < props.maxLength) noteConfig.value.text += e.key
-	} else {
-		return
-	}
+	if (e.key !== 'Escape' || e.isComposing) return
 	e.preventDefault()
+	emit('close')
 }
 
 watch(isEditing, (open) => {

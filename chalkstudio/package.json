@@ -7,6 +7,8 @@
 		"dev": "nuxt dev",
 		"typecheck": "nuxt typecheck",
 		"generate": "nuxt generate",
+		"unittest": "vitest --project unit",
+		"e2e": "vitest --project e2e",
 		"preview": "nuxt preview",
 		"postinstall": "nuxt prepare"
 	},
@@ -27,10 +29,15 @@
 	},
 	"devDependencies": {
 		"@iconify-json/lucide": "^1.2.122",
+		"@nuxt/test-utils": "^4.3.2",
 		"@types/pg": "^8.23.1",
+		"@vue/test-utils": "^2.5.1",
 		"drizzle-kit": "^1.0.0-rc.4",
+		"happy-dom": "^20.14.5",
+		"playwright-core": "^1.63.0",
 		"tsx": "^4.23.13",
 		"typescript": "~5.8.3",
+		"vitest": "^5.0.1",
 		"vue-tsc": "^3.3.9"
 	}
 }

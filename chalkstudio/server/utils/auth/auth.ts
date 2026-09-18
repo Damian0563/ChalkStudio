@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import type { UserJWTId } from "#shared/types";
 
-class AuthService {
+export class AuthService {
 	static refreshDelta = 1000 * 60 * 15;
 
 	public generateJWT(user: Omit<UserJWTId, "exp" | "iat">): string | Error {

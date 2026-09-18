@@ -5,7 +5,7 @@ export default defineNuxtConfig({
 	devServer: {
 		port: 3000,
 	},
-	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt'],
+	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt', '@nuxt/test-utils/module'],
 	nitro: {
 		experimental: {
 			websocket: true

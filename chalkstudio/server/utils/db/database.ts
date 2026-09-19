@@ -8,12 +8,22 @@ import { sql } from 'drizzle-orm'
 const { Pool } = pg
 let poolPromise: any
 
-const createPool = async () => {
+const getClientOpts = async () => {
+	if (process.env.PG_HOST) {
+		return {
+			host: process.env.PG_HOST,
+			port: Number(process.env.PG_PORT ?? 5432),
+		}
+	}
 	const connector = new Connector()
-	const clientOpts = await connector.getOptions({
-		instanceConnectionName: process.env.PG_CONNECTION_NAME,
+	return await connector.getOptions({
+		instanceConnectionName: process.env.PG_CONNECTION_NAME!,
 		authType: AuthTypes.PASSWORD,
 	})
+}
+
+const createPool = async () => {
+	const clientOpts = await getClientOpts()
 
 	const db = drizzle({
 		client: new Pool({

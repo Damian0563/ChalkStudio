@@ -6,8 +6,11 @@ export const users = pgTable("users", {
 	role: varchar("role").notNull(),
 	email: varchar("email").notNull(),
 	password: varchar("password").notNull(),
+	createdAt: date("created_at").notNull(),
+	refreshToken: varchar("refresh_token"),
 }, (t) => [
 	index("users_id_idx").on(t.id),
+	index("users_refresh_token_idx").on(t.refreshToken),
 ])
 
 

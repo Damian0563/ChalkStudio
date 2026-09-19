@@ -6,18 +6,17 @@
 			<slot />
 		</main>
 		<Footer />
-		<Announce
-			v-if="message"
-			:message="message.message"
-			:title="message.title"
-			:sentiment="message.sentiment"
+		<Announce v-if="message" :message="message.message" :title="message.title" :sentiment="message.sentiment"
 			@close="closeAnnounce" />
-		<SignIn v-if="authMode" :mode="authMode" @close="authMode = null" />
+		<Notice :message="noticeMsg" />
+		<SignIn v-if="authMode" v-model:mode="authMode" @close="authMode = null" @error='noticeMsg = $event' />
 	</div>
 </template>
 
 <script setup lang="ts">
+import type { QuickNotice } from '~/types/general'
 type AuthMode = 'signIn' | 'signUp' | null
+const noticeMsg = ref<QuickNotice | undefined>(undefined)
 
 const authMode = ref<AuthMode>(null)
 const { message, closeAnnounce } = useAnnounce()

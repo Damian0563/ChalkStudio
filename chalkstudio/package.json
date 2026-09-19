@@ -30,6 +30,7 @@
 	},
 	"devDependencies": {
 		"@iconify-json/lucide": "^1.2.122",
+		"@iconify-json/simple-icons": "^1.2.96",
 		"@nuxt/test-utils": "^4.3.2",
 		"@types/pg": "^8.23.1",
 		"@vue/test-utils": "^2.5.1",

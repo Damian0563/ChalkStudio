@@ -80,6 +80,14 @@ export class AuthService {
 		const hash = await scryptAsync(password, salt, 64);
 		return `${salt.toString("base64url")}.${hash.toString("base64url")}`;
 	}
+
+	public async comparePassword(hash: string, password: string): Promise<boolean> {
+		const [salt, storedHash] = hash.split(".");
+		if (!salt || !storedHash) return false;
+		const storedBuffer = Buffer.from(storedHash, "base64url");
+		const computed = await scryptAsync(password, Buffer.from(salt, "base64url"), 64);
+		return storedBuffer.length === computed.length && timingSafeEqual(storedBuffer, computed);
+	}
 }
 
 export const authService = new AuthService();

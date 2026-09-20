@@ -15,10 +15,12 @@
 	"dependencies": {
 		"@google-cloud/cloud-sql-connector": "^1.12.0",
 		"@google-cloud/secret-manager": "^7.1.0",
+		"@google-cloud/tasks": "^7.1.1",
 		"@nuxt/icon": "^2.4.1",
 		"@nuxtjs/tailwindcss": "^6.14.0",
 		"@vueuse/nuxt": "^14.4.0",
 		"drizzle-orm": "^1.0.0-rc.4",
+		"google-auth-library": "^11.1.0",
 		"konva": "^10.3.0",
 		"motion-v": "^1.10.3",
 		"nuxt": "^4.5.1",

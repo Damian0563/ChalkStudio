@@ -2,6 +2,7 @@ import type { BoardMeta } from '~/types/board'
 import type { QuickNotice } from '~/types/general'
 import type KonvaTypes from 'konva'
 import type { Ref } from 'vue'
+import type { NuxtApp } from '#app'
 
 type useBoardStateOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
@@ -10,6 +11,7 @@ type useBoardStateOptions = {
 	loading: Ref<boolean>
 	room: ComputedRef<string>
 	onRestore?: (node: KonvaTypes.Node) => void
+	fetch: NuxtApp['$csrfFetch']
 }
 const useBoardState = (options: useBoardStateOptions) => {
 	const loaded = ref(false)
@@ -65,7 +67,7 @@ const useBoardState = (options: useBoardStateOptions) => {
 		const board = autoSaveBoardState()
 		boardMetadata.data = board
 		try {
-			const response = await $fetch<{ ok: boolean }>(`/api/boards/save/${boardMetadata.id}`, {
+			const response = await options.fetch<{ ok: boolean }>(`/api/boards/save/${boardMetadata.id}`, {
 				method: 'POST',
 				body: JSON.stringify(boardMetadata),
 			})

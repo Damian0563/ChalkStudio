@@ -1,5 +1,8 @@
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, scrypt, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 import type { UserJWTId } from "#shared/types";
+
+const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
 export class AuthService {
 	static refreshDelta = 1000 * 60 * 15;
@@ -69,6 +72,13 @@ export class AuthService {
 		if (payload instanceof Error) return payload;
 		const { exp, iat, ...identity } = payload;
 		return this.generateJWT(identity);
+	}
+
+	// Stored as `<salt>.<hash>` so the salt travels with the hash it produced.
+	public async hashPassword(password: string): Promise<string> {
+		const salt = randomBytes(16);
+		const hash = await scryptAsync(password, salt, 64);
+		return `${salt.toString("base64url")}.${hash.toString("base64url")}`;
 	}
 }
 

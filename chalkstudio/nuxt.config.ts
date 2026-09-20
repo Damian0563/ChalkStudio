@@ -5,7 +5,10 @@ export default defineNuxtConfig({
 	devServer: {
 		port: 3000,
 	},
-	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt', '@nuxt/test-utils/module'],
+	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt', '@nuxt/test-utils/module', 'nuxt-csurf'],
+	csurf: {
+		methodsToProtect: ['POST', 'PUT', 'PATCH', 'DELETE'],
+	},
 	nitro: {
 		experimental: {
 			websocket: true

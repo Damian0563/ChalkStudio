@@ -1,9 +1,11 @@
 import pg from 'pg'
 import { AuthTypes, Connector } from '@google-cloud/cloud-sql-connector'
+import type { UserSignUpPayload, UserJWTId } from '#shared/types'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { boards, users } from './schema'
 import { pushSchema } from 'drizzle-kit/api-postgres'
 import { sql } from 'drizzle-orm'
+import { authService } from '../auth/auth'
 
 const { Pool } = pg
 let poolPromise: any
@@ -53,7 +55,24 @@ export const useDatabase = async () => {
 		await pool.execute(sql`select 1`)
 	}
 
-	const createUser = async () => {
+	const createUser = async (user: Omit<UserSignUpPayload, 'code'>): Promise<Omit<UserJWTId, "exp" | "iat">> => {
+		const { name, email, password, role } = user
+		const normalizedEmail = email.trim().toLowerCase()
+
+		const [created] = await pool.insert(users).values({
+			name: name.trim(),
+			email: normalizedEmail,
+			password: await authService.hashPassword(password),
+			role,
+			createdAt: sql`current_date`,
+		}).onConflictDoNothing({ target: users.email }).returning({ id: users.id, name: users.name, role: users.role })
+		if (!created) throw new Error('Email already registered')
+
+		return {
+			userId: String(created.id),
+			username: created.name,
+			role: created.role as UserJWTId['role'],
+		}
 	}
 
 	return {

@@ -218,7 +218,8 @@ useKeyboard({
 	settings,
 })
 const boardMeta = useState<BoardMeta | undefined>('boardMeta')
-const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode })
+const { $csrfFetch } = useNuxtApp()
+const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode, fetch: $csrfFetch })
 
 
 watch(noteConfig, () => {

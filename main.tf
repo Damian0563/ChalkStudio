@@ -40,6 +40,11 @@ variable "jwt_secret" {
 }
 
 locals {
+  service_name = "chalkstudio"
+  service_url  = "https://${local.service_name}-${data.google_project.main.number}.${var.region}.run.app"
+}
+
+locals {
   # Every environment variable the deployed app reads, mirrored into Secret Manager
   # under its own name. PG_HOST / PG_PORT are deliberately absent: they exist only
   # to point local development at docker-compose, and setting them in the deployed
@@ -128,6 +133,123 @@ resource "google_secret_manager_secret_version" "main" {
   secret_data = local.secret_values[each.key]
 }
 
+resource "google_project_service" "run" {
+  service            = "run.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "cloudtasks" {
+  service            = "cloudtasks.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "artifactregistry" {
+  service            = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
+}
+
+data "google_project" "main" {}
+
+resource "google_artifact_registry_repository" "main" {
+  repository_id = "chalkstudio"
+  location      = var.region
+  format        = "DOCKER"
+  depends_on    = [google_project_service.artifactregistry]
+}
+
+resource "google_service_account" "app" {
+  account_id   = "chalkstudio-app"
+  display_name = "Chalk Studio application"
+}
+
+resource "google_service_account" "tasks_invoker" {
+  account_id   = "chalkstudio-tasks-invoker"
+  display_name = "Chalk Studio task dispatcher"
+}
+
+resource "google_cloud_tasks_queue" "email" {
+  name     = "email"
+  location = var.region
+
+  rate_limits {
+    max_dispatches_per_second = 10
+    max_concurrent_dispatches = 20
+  }
+
+  retry_config {
+    max_attempts       = 10
+    min_backoff        = "5s"
+    max_backoff        = "300s"
+    max_doublings      = 4
+    max_retry_duration = "3600s"
+  }
+
+  depends_on = [google_project_service.cloudtasks]
+}
+
+resource "google_cloud_tasks_queue" "reviews" {
+  name     = "reviews"
+  location = var.region
+
+  rate_limits {
+    max_dispatches_per_second = 1
+    max_concurrent_dispatches = 5
+  }
+
+  retry_config {
+    max_attempts  = 3
+    min_backoff   = "30s"
+    max_backoff   = "600s"
+    max_doublings = 2
+  }
+
+  depends_on = [google_project_service.cloudtasks]
+}
+
+
+
+resource "google_cloud_run_v2_service" "app" {
+  name                = local.service_name
+  location            = var.region
+  deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account                  = google_service_account.app.email
+    max_instance_request_concurrency = 80
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 4
+    }
+
+    containers {
+      image = "${var.region}-docker.pkg.dev/${var.project}/${google_artifact_registry_repository.main.repository_id}/${local.service_name}:latest"
+      ports {
+        container_port = 3000
+      }
+      env {
+        name  = "SERVICE_URL"
+        value = local.service_url
+      }
+      env {
+        name  = "TASKS_LOCATION"
+        value = var.region
+      }
+      env {
+        name  = "TASKS_INVOKER_SA"
+        value = google_service_account.tasks_invoker.email
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template[0].containers[0].image, client, client_version]
+  }
+
+  depends_on = [google_project_service.run]
+}
+
 output "pg_connection_name" {
   description = "Value for PG_CONNECTION_NAME in the app environment."
   value       = google_sql_database_instance.main.connection_name
@@ -136,4 +258,14 @@ output "pg_connection_name" {
 output "secret_ids" {
   description = "Secret Manager secrets holding the app environment, keyed by variable name."
   value       = { for name, secret in google_secret_manager_secret.main : name => secret.id }
+}
+
+output "service_url" {
+  description = "Public address of the deployed app, and the OIDC audience task dispatches are signed for."
+  value       = local.service_url
+}
+
+output "artifact_repository" {
+  description = "Docker repository CI pushes the app image to."
+  value       = "${var.region}-docker.pkg.dev/${var.project}/${google_artifact_registry_repository.main.repository_id}"
 }

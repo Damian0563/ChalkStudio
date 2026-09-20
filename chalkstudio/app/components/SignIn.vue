@@ -3,7 +3,7 @@
 		class="fixed inset-0 z-[40] flex h-full w-full items-center justify-center bg-board/80 p-4 backdrop-blur-md"
 		:initial="{ opacity: 0 }" :animate="{ opacity: 1 }" :transition="{ duration: 0.25 }" @click.self="emit('close')">
 		<motion.div
-			class="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl border border-chalk/10 bg-board-raised shadow-[0_24px_80px_-20px_rgba(0,0,0,0.55)]"
+			class="relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-chalk/10 bg-board-raised shadow-[0_24px_80px_-20px_rgba(0,0,0,0.55)]"
 			role="dialog" aria-modal="true" aria-labelledby="auth-title" :initial="{ opacity: 0, scale: 0.96, y: 20 }"
 			:animate="{ opacity: 1, scale: 1, y: 0 }" :transition="{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }">
 			<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
@@ -58,7 +58,6 @@
 						</div>
 					</fieldset>
 
-					<!-- Name and email share a row while signing up, so the taller form still fits a laptop screen. -->
 					<div class="grid gap-3" :class="{ 'sm:grid-cols-2': !isSignIn }">
 						<div v-if="!isSignIn" class="flex flex-col gap-1">
 							<label for="auth-name" class="text-xs font-semibold text-chalk-muted">Name</label>
@@ -103,8 +102,7 @@
 						</div>
 					</div>
 
-					<button type="submit"
-						:class="[{ 'cursor-not-allowed': !isReady }, isSignIn ? 'mt-2 py-3' : 'mt-1 py-2.5']"
+					<button type="submit" :class="[{ 'cursor-not-allowed': !isReady }, isSignIn ? 'mt-2 py-3' : 'mt-1 py-2.5']"
 						class="group flex w-full items-center justify-center gap-2 rounded-lg bg-coral px-4 font-sans text-sm font-semibold text-chalk transition-colors hover:bg-coral-soft">
 						{{ isSignIn ? 'Sign in' : 'Create account' }}
 						<Icon name="lucide:arrow-right"

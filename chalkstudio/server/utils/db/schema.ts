@@ -1,4 +1,4 @@
-import { index, integer, pgTable, varchar, date } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, varchar, date, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
 	id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -11,6 +11,14 @@ export const users = pgTable("users", {
 }, (t) => [
 	index("users_id_idx").on(t.id),
 	index("users_refresh_token_idx").on(t.refreshToken),
+])
+
+export const codes = pgTable("codes", {
+	mail: varchar("mail").notNull().unique(),
+	code: varchar("code").notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, (t) => [
+	index("codes_mail_idx").on(t.mail),
 ])
 
 

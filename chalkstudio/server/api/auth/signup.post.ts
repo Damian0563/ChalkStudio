@@ -1,5 +1,4 @@
-import { registrationRoles, type UserSignUpPayload, type UserJWTId } from '#shared/types'
-import { authService } from '../../utils/auth/auth'
+import { registrationRoles, type UserSignUpPayload } from '#shared/types'
 
 
 export default defineEventHandler(async (event) => {
@@ -11,12 +10,10 @@ export default defineEventHandler(async (event) => {
 	if (!registrationRoles.includes(role)) {
 		return { status: 400, body: { message: 'Please choose a valid account type.' } }
 	}
-	if (code.trim() !== "111111") return { status: 403, body: { message: 'Invalid code.' } }
-	const { createUser } = await useDatabase()
-	let identity: Omit<UserJWTId, 'exp' | 'iat'>
+	const { createUser, consumeLoginCode } = await useDatabase()
+	if (!await consumeLoginCode(email, code)) return { status: 403, body: { message: 'Invalid code.' } }
 	try {
-		identity = await createUser({ name, email, password, role } as Omit<UserSignUpPayload, 'code'>)
-		const token = authService.generateJWT(identity)
+		const token: string = await createUser({ name, email, password, role } as Omit<UserSignUpPayload, 'code'>)
 		return { status: 200, body: { token } }
 	} catch (e: any) {
 		if (e.message === 'Email already registered') {

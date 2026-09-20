@@ -1,3 +1,5 @@
+import type { NitroRouteConfig } from 'nitropack'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 	compatibilityDate: '2025-07-15',
@@ -8,6 +10,14 @@ export default defineNuxtConfig({
 	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt', '@nuxt/test-utils/module', 'nuxt-csurf'],
 	csurf: {
 		methodsToProtect: ['POST', 'PUT', 'PATCH', 'DELETE'],
+	},
+	routeRules: {
+		// Cloud Tasks dispatches carry no CSRF cookie and cannot be given one. They are
+		// authenticated instead by the OIDC token assertTaskRequest checks, which is a
+		// stronger guarantee than the token this rule waives. The assertion is nuxt-csurf's
+		// doing: it declares this option on `nitropack`, but nitropack v2 re-exports
+		// NitroRouteConfig from an internal chunk, so the augmentation never merges.
+		'/api/tasks/**': { csurf: false } as NitroRouteConfig,
 	},
 	nitro: {
 		experimental: {

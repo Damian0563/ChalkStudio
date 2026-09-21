@@ -225,7 +225,7 @@ const registerUser = async () => {
 		})
 	} catch (error) {
 		emit('message', {
-			message: 'An error occured while signing up. Please try again later.',
+			message: (error as FetchError).data?.message ?? 'An error occured while signing up. Please try again later.',
 			type: 'error',
 		})
 	} finally {

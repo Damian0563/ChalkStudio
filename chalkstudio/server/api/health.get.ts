@@ -1,3 +1,1 @@
-export default defineEventHandler((event) => {
-	return new Response("OK")
-})
+export default defineEventHandler(() => 'OK')

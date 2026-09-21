@@ -56,7 +56,9 @@ export const useDatabase = async () => {
 		await pool.execute(sql`select 1`)
 	}
 
-	const createUser = async (user: Omit<UserSignUpPayload, 'code'>): Promise<string> => {
+	// Resolves to undefined when the email is already taken, so callers decide how a
+	// conflict is answered rather than picking it back out of a thrown message.
+	const createUser = async (user: Omit<UserSignUpPayload, 'code'>): Promise<string | undefined> => {
 		const { name, email, password, role } = user
 		const normalizedEmail = email.trim().toLowerCase()
 		const refreshToken = String(uuid())
@@ -68,7 +70,7 @@ export const useDatabase = async () => {
 			createdAt: sql`current_date`,
 			refreshToken: refreshToken,
 		}).onConflictDoNothing({ target: users.email }).returning({ id: users.id, name: users.name, role: users.role })
-		if (!created) throw new Error('Email already registered')
+		if (!created) return
 		return refreshToken
 	}
 

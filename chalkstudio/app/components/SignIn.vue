@@ -187,6 +187,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 const { $csrfFetch } = useNuxtApp()
+
+// The endpoints reject with a real HTTP error, so the thrown FetchError carries both the
+// status and the sentence meant for the user; `fallback` covers a failure that never
+// reached the route, such as a dropped connection.
+const asApiError = (error: unknown): { status?: number; data?: { message?: string } } =>
+	(error ?? {}) as { status?: number; data?: { message?: string } }
+const apiMessage = (error: unknown, fallback: string): string => asApiError(error).data?.message ?? fallback
+
 const signIn = async () => {
 	emit('load')
 	try {
@@ -197,9 +205,9 @@ const signIn = async () => {
 				password: form.password,
 			}
 		})
-	} catch {
+	} catch (error) {
 		emit('message', {
-			message: 'An error occured while signing in. Please try again later.',
+			message: apiMessage(error, 'An error occured while signing in. Please try again later.'),
 			type: 'error',
 		})
 	} finally {
@@ -220,9 +228,9 @@ const registerUser = async () => {
 			message: 'We have sent you a confirmation code. Please check your inbox.',
 			type: 'success',
 		})
-	} catch {
+	} catch (error) {
 		emit('message', {
-			message: 'An error occured while signing up. Please try again later.',
+			message: apiMessage(error, 'An error occured while signing up. Please try again later.'),
 			type: 'error',
 		})
 	} finally {
@@ -233,7 +241,7 @@ const registerUser = async () => {
 const signUp = async () => {
 	emit('load')
 	try {
-		const response = await $csrfFetch('/api/auth/signup', {
+		await $csrfFetch('/api/auth/signup', {
 			method: 'POST',
 			body: {
 				name: form.name,
@@ -243,18 +251,20 @@ const signUp = async () => {
 				code: code.value
 			}
 		})
-		if (response.status !== 200 || !response.body.token) {
-			codeError.value = 'That code is not right. Check your inbox and try again.'
-			return
-		}
 		displayMailCode.value = false
 		emit('message', {
 			message: 'Your account has been created. You will be redirected to the home page in a few seconds.',
 			type: 'success',
 		})
-	} catch {
+	} catch (error) {
+		// The route answers a rejected code and an address that got taken in the meantime
+		// with the same 403, which keeps both pointing at the code field.
+		if (asApiError(error).status === 403) {
+			codeError.value = 'That code is not right. Check your inbox and try again.'
+			return
+		}
 		emit('message', {
-			message: 'An error occured while signing up. Please try again later.',
+			message: apiMessage(error, 'An error occured while signing up. Please try again later.'),
 			type: 'error',
 		})
 	} finally {

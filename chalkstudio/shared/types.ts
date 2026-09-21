@@ -7,6 +7,9 @@ export type UserJWTId = {
 	opts?: any
 }
 
+// The claims a session is rebuilt from; the token adds its own lifetime on top.
+export type UserIdentity = Omit<UserJWTId, "exp" | "iat">
+
 
 // The roles anyone may pick for themselves at sign-up; paid teacher tiers and admin
 // are granted later, never taken from the registration form.

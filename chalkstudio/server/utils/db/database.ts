@@ -1,12 +1,13 @@
 import pg from 'pg'
 import { v4 as uuid } from 'uuid'
 import { AuthTypes, Connector } from '@google-cloud/cloud-sql-connector'
-import type { UserSignUpPayload, UserJWTId } from '#shared/types'
+import type { UserSignUpPayload, UserIdentity } from '#shared/types'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { boards, users, codes } from './schema'
 import { pushSchema } from 'drizzle-kit/api-postgres'
 import { sql } from 'drizzle-orm'
 import { authService } from '../auth/auth'
+import type { Session } from '../auth/session'
 
 const { Pool } = pg
 let poolPromise: any
@@ -56,9 +57,13 @@ export const useDatabase = async () => {
 		await pool.execute(sql`select 1`)
 	}
 
-	// Resolves to undefined when the email is already taken, so callers decide how a
-	// conflict is answered rather than picking it back out of a thrown message.
-	const createUser = async (user: Omit<UserSignUpPayload, 'code'>): Promise<string | undefined> => {
+	const toIdentity = (row: { id: number, name: string, role: string }): UserIdentity => ({
+		userId: String(row.id),
+		username: row.name,
+		role: row.role as UserIdentity['role'],
+	})
+
+	const createUser = async (user: Omit<UserSignUpPayload, 'code'>): Promise<Session | undefined> => {
 		const { name, email, password, role } = user
 		const normalizedEmail = email.trim().toLowerCase()
 		const refreshToken = String(uuid())
@@ -71,16 +76,26 @@ export const useDatabase = async () => {
 			refreshToken: refreshToken,
 		}).onConflictDoNothing({ target: users.email }).returning({ id: users.id, name: users.name, role: users.role })
 		if (!created) return
-		return refreshToken
+		return { identity: toIdentity(created), refreshToken }
 	}
 
-	const login = async (email: string, assertedPassword: string): Promise<string | undefined> => {
-		const [user] = await pool.select({ password: users.password, refreshToken: users.refreshToken }).from(users).where(sql`${users.email} = ${email.trim().toLowerCase()}`)
+	const login = async (email: string, assertedPassword: string): Promise<Session | undefined> => {
+		const [user] = await pool.select({ id: users.id, name: users.name, role: users.role, password: users.password, refreshToken: users.refreshToken })
+			.from(users).where(sql`${users.email} = ${email.trim().toLowerCase()}`)
 		if (!user) return
-		const { password, refreshToken } = user
-		if (await authService.comparePassword(password, assertedPassword)) {
-			return refreshToken
+		if (!await authService.comparePassword(user.password, assertedPassword)) return
+		const refreshToken = user.refreshToken ?? String(uuid())
+		if (!user.refreshToken) {
+			await pool.update(users).set({ refreshToken }).where(sql`${users.id} = ${user.id}`)
 		}
+		return { identity: toIdentity(user), refreshToken }
+	}
+
+	const findByRefreshToken = async (refreshToken: string): Promise<Session | undefined> => {
+		const [user] = await pool.select({ id: users.id, name: users.name, role: users.role })
+			.from(users).where(sql`${users.refreshToken} = ${refreshToken}`)
+		if (!user) return
+		return { identity: toIdentity(user), refreshToken }
 	}
 
 	const insertLoginCode = async (email: string, code: string) => {
@@ -116,6 +131,7 @@ export const useDatabase = async () => {
 		initConnection,
 		createUser,
 		login,
+		findByRefreshToken,
 		checkUserExists,
 		insertLoginCode,
 		consumeLoginCode,

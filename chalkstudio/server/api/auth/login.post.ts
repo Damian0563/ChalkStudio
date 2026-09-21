@@ -1,3 +1,5 @@
+import { startSession } from '#server/utils/auth/session'
+
 export default defineEventHandler(async (event) => {
 	const body: { email?: string, password?: string } = await readBody(event)
 	const email = body?.email?.trim() ?? ''
@@ -7,11 +9,10 @@ export default defineEventHandler(async (event) => {
 	}
 
 	const { login } = await useDatabase()
-	const token = await login(email, password)
-	// An unknown address and a wrong password are the same rejection on purpose: the
-	// response must not tell the caller which half of the pair was wrong.
-	if (!token) {
+	const session = await login(email, password)
+	if (!session) {
 		throw createError({ statusCode: 401, statusMessage: 'Unauthorized', message: 'Invalid credentials.' })
 	}
-	return { token }
+	startSession(event, session)
+	return null
 })

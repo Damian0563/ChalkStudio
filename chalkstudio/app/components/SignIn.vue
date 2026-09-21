@@ -129,6 +129,7 @@
 
 <script setup lang="ts">
 import { motion } from 'motion-v'
+import type { FetchError } from 'ofetch'
 import type { QuickNotice } from '@/types/general'
 import type { RegistrationRole } from '#shared/types'
 const mode = defineModel<'signIn' | 'signUp'>('mode', { required: true })
@@ -188,13 +189,6 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 const { $csrfFetch } = useNuxtApp()
 
-// The endpoints reject with a real HTTP error, so the thrown FetchError carries both the
-// status and the sentence meant for the user; `fallback` covers a failure that never
-// reached the route, such as a dropped connection.
-const asApiError = (error: unknown): { status?: number; data?: { message?: string } } =>
-	(error ?? {}) as { status?: number; data?: { message?: string } }
-const apiMessage = (error: unknown, fallback: string): string => asApiError(error).data?.message ?? fallback
-
 const signIn = async () => {
 	emit('load')
 	try {
@@ -205,9 +199,10 @@ const signIn = async () => {
 				password: form.password,
 			}
 		})
+		await navigateTo('/workspace')
 	} catch (error) {
 		emit('message', {
-			message: apiMessage(error, 'An error occured while signing in. Please try again later.'),
+			message: (error as FetchError).data?.message ?? 'An error occured while signing in. Please try again later.',
 			type: 'error',
 		})
 	} finally {
@@ -230,7 +225,7 @@ const registerUser = async () => {
 		})
 	} catch (error) {
 		emit('message', {
-			message: apiMessage(error, 'An error occured while signing up. Please try again later.'),
+			message: 'An error occured while signing up. Please try again later.',
 			type: 'error',
 		})
 	} finally {
@@ -256,15 +251,14 @@ const signUp = async () => {
 			message: 'Your account has been created. You will be redirected to the home page in a few seconds.',
 			type: 'success',
 		})
+		setTimeout(() => navigateTo('/workspace'), 1500)
 	} catch (error) {
-		// The route answers a rejected code and an address that got taken in the meantime
-		// with the same 403, which keeps both pointing at the code field.
-		if (asApiError(error).status === 403) {
+		if ((error as FetchError).status === 403) {
 			codeError.value = 'That code is not right. Check your inbox and try again.'
 			return
 		}
 		emit('message', {
-			message: apiMessage(error, 'An error occured while signing up. Please try again later.'),
+			message: (error as FetchError).data?.message ?? 'An error occured while signing up. Please try again later.',
 			type: 'error',
 		})
 	} finally {

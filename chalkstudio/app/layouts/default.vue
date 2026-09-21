@@ -21,6 +21,7 @@ type AuthMode = 'signIn' | 'signUp' | null
 const noticeMsg: Ref<QuickNotice | undefined> = ref(undefined)
 const loading: Ref<boolean> = ref(false)
 
+
 const authMode = ref<AuthMode>(null)
 const { message, closeAnnounce } = useAnnounce()
 </script>

@@ -1,4 +1,5 @@
 import { registrationRoles, type UserSignUpPayload } from '#shared/types'
+import { startSession } from '#server/utils/auth/session'
 
 const invalidCode = () =>
 	createError({ statusCode: 403, statusMessage: 'Forbidden', message: 'Invalid code.' })
@@ -16,7 +17,8 @@ export default defineEventHandler(async (event) => {
 	const { createUser, consumeLoginCode } = await useDatabase()
 	if (!await consumeLoginCode(email, code)) throw invalidCode()
 
-	const token = await createUser({ name, email, password, role })
-	if (!token) throw invalidCode()
-	return { token }
+	const session = await createUser({ name, email, password, role })
+	if (!session) throw invalidCode()
+	startSession(event, session)
+	return null
 })

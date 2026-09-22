@@ -1,4 +1,4 @@
-import { index, integer, pgTable, varchar, date, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, varchar, date, timestamp, json } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
 	id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -26,9 +26,11 @@ export const boards = pgTable("boards", {
 	id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
 	ownerId: integer("owner").notNull().references(() => users.id),
 	image: varchar("image"),
+	title: varchar("title").notNull(),
+	imageSources: json("image_sources"),
 	name: varchar("name").notNull(),
 	description: varchar("description").notNull(),
-	data: varchar("data"),
+	data: json("data").notNull(),
 	modifiedAt: date("modified_at").notNull(),
 	authorization: varchar("authorization"),
 	allowedUsers: varchar("allowed_users"),

@@ -1,4 +1,4 @@
-import type { BoardMeta } from '~/types/board'
+import type { BoardMeta } from '#shared/types'
 import type { QuickNotice } from '~/types/general'
 import type KonvaTypes from 'konva'
 import type { Ref } from 'vue'

@@ -18,15 +18,16 @@
 				v-if="!settings.focusMode" />
 			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
 				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
-			<StickyNoteEditor ref="noteEditorRef" v-model:is-editing="isEditing" v-model:note-config="noteConfig" :max-length="maxLength"
-				@close="cancelNoteEdit" />
+			<StickyNoteEditor ref="noteEditorRef" v-model:is-editing="isEditing" v-model:note-config="noteConfig"
+				:max-length="maxLength" @close="cancelNoteEdit" />
 		</div>
 	</ClientOnly>
 </template>
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
-import type { BoardEvent, Tool, BoardSettings, HistoryEvent, BoardMeta } from '~/types/board'
+import type { BoardEvent, Tool, BoardSettings, HistoryEvent } from '~/types/board'
+import type { BoardMeta } from '#shared/types'
 import type { QuickNotice } from '~/types/general'
 definePageMeta({
 	layout: 'blank',
@@ -195,6 +196,8 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
+
+useImages({ quickNotice, room })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,

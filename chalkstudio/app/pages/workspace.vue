@@ -1,6 +1,10 @@
 <template>
 	<div>
-		<button type="button" @click="navigateTo('/session/123')">New</button>
+		<Notice :message="quickNotice" />
+		<CreateBoardModal v-model:boardCreation="boardCreation" />
+		<button type="button" @click="boardCreation = true">
+			Create new board
+		</button>
 	</div>
 </template>
 
@@ -10,14 +14,14 @@ import { useWorkspace } from '@/composables/useWorkspace'
 definePageMeta({
 	layout: 'main',
 })
-const emits = defineEmits<{
-	(e: 'loading'): void
-	(e: 'message', notice: QuickNotice): void
-}>()
+const quickNotice = ref<QuickNotice | undefined>(undefined)
+const boardCreation: Ref<boolean> = ref(false)
 
-const { initWorkspace } = useWorkspace()
+const { initWorkspace } = useWorkspace({ fetch: useRequestFetch() })
 const { data, error } = await useAsyncData('workspace', () => initWorkspace())
-if (error) emits('message', { message: "Error occured loading workspace", type: 'error' })
+onMounted(() => {
+	if (error.value) quickNotice.value = { message: "Error occured loading workspace", type: 'error' }
+})
 console.log(data.value)
 
 </script>

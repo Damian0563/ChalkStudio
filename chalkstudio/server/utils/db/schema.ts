@@ -1,4 +1,5 @@
-import { index, integer, pgTable, varchar, date, timestamp, json } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, varchar, date, timestamp, json, uuid } from "drizzle-orm/pg-core";
+import type { BoardAccess } from "#shared/types";
 
 export const users = pgTable("users", {
 	id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -23,17 +24,16 @@ export const codes = pgTable("codes", {
 
 
 export const boards = pgTable("boards", {
-	id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+	id: uuid("id").primaryKey(),
 	ownerId: integer("owner").notNull().references(() => users.id),
 	image: varchar("image"),
 	title: varchar("title").notNull(),
 	imageSources: json("image_sources"),
-	name: varchar("name").notNull(),
-	description: varchar("description").notNull(),
-	data: json("data").notNull(),
+	description: varchar("description"),
+	data: json("data"),
 	modifiedAt: date("modified_at").notNull(),
-	authorization: varchar("authorization"),
-	allowedUsers: varchar("allowed_users"),
+	authorization: varchar("authorization").$type<BoardAccess>().default("public"),
+	allowedUsers: json("allowed_users").$type<string[]>(),
 }, (t) => [
 	index("boards_owner_idx").on(t.ownerId),
 ])

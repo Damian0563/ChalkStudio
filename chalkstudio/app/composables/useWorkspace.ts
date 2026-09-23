@@ -1,6 +1,10 @@
-export function useWorkspace() {
+type useWorkspaceOptions = {
+	fetch: ReturnType<typeof useRequestFetch>
+}
+
+export function useWorkspace(options: useWorkspaceOptions) {
 	const initWorkspace = async () => {
-		return await $fetch('/api/workspace/init', {
+		return await options.fetch('/api/workspace/init', {
 			method: 'GET',
 		})
 	}

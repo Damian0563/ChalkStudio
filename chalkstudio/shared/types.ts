@@ -22,13 +22,21 @@ export type UserSignUpPayload = {
 }
 
 
+export const boardAccessModes = ["public", "link", "invite", "private"] as const
+export type BoardAccess = typeof boardAccessModes[number]
+
 export type BoardMeta = {
 	id: string;
 	title: string;
+	description: string;
 	image: string | null;
 	data: string;
 	imageSources: Record<string, string>;
+	authorization: BoardAccess;
+	allowedUsers: string[];
 }
+
+export type BoardCreationPayload = Pick<BoardMeta, "title" | "description" | "authorization" | "allowedUsers">;
 
 // What POST /api/images hands back. The id is what the board keeps - on the
 // Konva node as `imageId`, and as the key into `imageSources` - while the URL

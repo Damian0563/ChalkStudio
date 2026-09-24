@@ -111,8 +111,9 @@ resource "google_sql_user" "main" {
 resource "google_storage_bucket" "main" {
   name     = "chalkstudio-bucket"
   location = var.region
-  cors{
+  cors {
     origin = ["*"]
+    method = ["GET", "HEAD"]
   }
 }
 

@@ -1,22 +1,25 @@
 import { randomUUID } from 'crypto'
+import { Storage } from '@google-cloud/storage'
 const bucketName = 'chalkstudio-bucket'
-
-const signedUrlTtl = 1000 * 60 * 60 * 12
+const signedUrlTtl = 1000 * 60 * 60 * 24 * 7
 
 export const useBucket = () => {
-	// STUB: nothing reaches chalkstudio-bucket yet. Mints the image's identity and
-	// returns it alongside the durable object name - never a URL - because the
-	// name is what the board's imageSources column stores; a URL would rot there.
+	const storage = new Storage()
 	const uploadImage = async (room: string, body: Buffer, contentType: string): Promise<{ imageId: string, objectName: string }> => {
 		const imageId = randomUUID()
 		const extension = contentType.split('/')[1] ?? 'bin'
+		const file = storage.bucket(bucketName).file(`boards/${room}/${imageId}.${extension}`)
+		await file.save(body, { contentType })
 		return { imageId, objectName: `boards/${room}/${imageId}.${extension}` }
 	}
 
-	// STUB: shaped like the real signed URL, minus the signature and with the
-	// expiry carried in the clear, so the client path can be exercised end to end.
 	const signImageUrl = async (objectName: string): Promise<string> => {
-		return `https://storage.googleapis.com/${bucketName}/${objectName}?expires=${Date.now() + signedUrlTtl}`
+		const [url] = await storage.bucket(bucketName).file(objectName).getSignedUrl({
+			version: 'v4',
+			action: 'read',
+			expires: Date.now() + signedUrlTtl,
+		})
+		return url
 	}
 
 	return { uploadImage, signImageUrl }

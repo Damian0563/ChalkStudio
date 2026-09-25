@@ -10,7 +10,7 @@
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" @save-board-state="saveBoardState(boardMeta)" @add-note="positionNote($event)"
-				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" />
+				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" @add-image="openImagePicker" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
 			<Settings v-model:settings="settings" />
@@ -197,7 +197,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
-useImages({ quickNotice, room })
+const { openImagePicker } = useImages({ quickNotice, room, getLayer, getStage })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,

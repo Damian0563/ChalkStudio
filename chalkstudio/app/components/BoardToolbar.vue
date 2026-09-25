@@ -39,7 +39,7 @@
 						<Icon name="lucide:square-text" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
 					<button type="button" title="Media" aria-label="Media" aria-controls="media-panel" class="flex h-9 w-9 items-center text-chalk-faint justify-center rounded-lg transition-colors
-						hover:bg-chalk/[0.06] hover:text-chalk">
+						hover:bg-chalk/[0.06] hover:text-chalk" @click="emit('addImage')">
 						<Icon name="lucide:image" class="h-4 w-4 shrink-0" aria-hidden="true" />
 					</button>
 					<button type="button" @click="emit('saveBoardState')"
@@ -277,6 +277,7 @@ const emit = defineEmits<{
 	addNote: [note: StickyNote]
 	undo: []
 	redo: []
+	addImage: []
 	saveBoardState: []
 }>()
 

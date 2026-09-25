@@ -35,10 +35,11 @@ const useBoardState = (options: useBoardStateOptions) => {
 		}
 		options.loading.value = false
 	}
-	const applyBoardState = (boardState: string): void => {
+	const applyBoardState = async (boardState: string): Promise<void> => {
 		const layer = options.getLayer()
 		if (!layer) return
 		const parsedState = JSON.parse(boardState)
+		const imageIds = new Map<string, { x: number, y: number, width: number, height: number }>()
 		parsedState?.children?.forEach((child: any) => {
 			if (child.className === 'Layer') {
 				const actualChildren = child.children
@@ -52,10 +53,21 @@ const useBoardState = (options: useBoardStateOptions) => {
 						layer.add(group)
 						options.onRestore?.(group)
 						layer.batchDraw()
+					} else if (child.className === 'Image') {
+						const imageId = child.attrs.id
+						imageIds.set(imageId, {
+							x: child.attrs.x,
+							y: child.attrs.y,
+							width: child.attrs.width,
+							height: child.attrs.height,
+						})
 					}
 				})
 			}
 		})
+		await Promise.all(Array.from(imageIds.keys()).map(async (imageId) => {
+			console.log(imageId, imageIds.get(imageId))
+		}))
 	}
 	const saveBoard = (): string => {
 		const stage = options?.getStage()

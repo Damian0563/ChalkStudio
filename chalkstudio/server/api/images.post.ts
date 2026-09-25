@@ -12,8 +12,8 @@ export default defineEventHandler(async (event): Promise<UploadedImage> => {
 		throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Missing board.' })
 	}
 	const contentType = getHeader(event, 'content-type') ?? ''
-	if (!contentType.startsWith('image/')) {
-		throw createError({ statusCode: 415, statusMessage: 'Unsupported Media Type', message: 'Only images can be added to a board.' })
+	if (!isSupportedImageType(contentType)) {
+		throw createError({ statusCode: 415, statusMessage: 'Unsupported Media Type', message: 'Only PNG, JPEG, GIF and WebP images can be added to a board.' })
 	}
 	const body = await readRawBody(event, false)
 	if (!body?.length) {

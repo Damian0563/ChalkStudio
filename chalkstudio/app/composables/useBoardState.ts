@@ -11,6 +11,7 @@ type useBoardStateOptions = {
 	loading: Ref<boolean>
 	room: ComputedRef<string>
 	onRestore?: (node: KonvaTypes.Node) => void
+	onRestoreImage?: (imageId: string, rect: { x: number, y: number, width: number, height: number }) => void | Promise<void>
 	fetch: NuxtApp['$csrfFetch']
 }
 const useBoardState = (options: useBoardStateOptions) => {
@@ -65,13 +66,16 @@ const useBoardState = (options: useBoardStateOptions) => {
 				})
 			}
 		})
-		await Promise.all(Array.from(imageIds.keys()).map(async (imageId) => {
-			console.log(imageId, imageIds.get(imageId))
-		}))
+		await Promise.all(Array.from(imageIds, ([imageId, rect]) => options.onRestoreImage?.(imageId, rect)))
 	}
 	const saveBoard = (): string => {
 		const stage = options?.getStage()
-		return stage ? stage.toJSON() : ''
+		if (!stage) return ''
+		const board = stage.toObject()
+		board.children?.forEach((layer: any) => {
+			layer.children = layer.children?.filter((child: any) => child.attrs.name !== IMAGE_PLACEHOLDER_NAME)
+		})
+		return JSON.stringify(board)
 	}
 	const saveBoardState = async (boardMetadata: BoardMeta | undefined) => {
 		if (!boardMetadata) return

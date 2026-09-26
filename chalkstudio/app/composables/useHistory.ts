@@ -67,6 +67,7 @@ const useHistory = (options: UseHistoryOptions) => {
 			}
 			push({ id, before: before ?? null, after: event.data, stub: isTextEdit })
 		} else if (event.type === 'stickyNote-delete') push({ id, before: event.data, after: null, stub: false })
+		else if (event.type === 'image-new') push({ id, before: null, after: event.data, stub: false })
 	}
 
 	const restore = (layer: KonvaTypes.Layer, id: string, state: object | null) => {

@@ -164,7 +164,11 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		closeEditorFor(group.id())
 		group.destroy()
 		layer.batchDraw()
-	} else if (event.type === 'undo' || event.type === 'redo') {
+	}
+	else if (event.type === 'image-placeholder' || event.type === 'image-new' || event.type === 'image-cancel') {
+		receiveRemoteImage(event)
+	}
+	else if (event.type === 'undo' || event.type === 'redo') {
 		closeEditorFor(receiveRemoteEvent(event))
 	}
 	if (event.type !== 'undo' && event.type !== 'redo') recordEvent(event as BoardEvent)
@@ -197,7 +201,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
-const { openImagePicker, restoreImage } = useImages({ quickNotice, room, getLayer, getStage, fetch: useRequestFetch() })
+const { openImagePicker, restoreImage, receiveRemoteImage } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,

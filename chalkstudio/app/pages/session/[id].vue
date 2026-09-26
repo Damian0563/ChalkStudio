@@ -197,7 +197,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
-const { openImagePicker } = useImages({ quickNotice, room, getLayer, getStage })
+const { openImagePicker, restoreImage } = useImages({ quickNotice, room, getLayer, getStage, fetch: useRequestFetch() })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,
@@ -222,7 +222,7 @@ useKeyboard({
 })
 const boardMeta = useState<BoardMeta | undefined>('boardMeta')
 const { $csrfFetch } = useNuxtApp()
-const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode, fetch: $csrfFetch })
+const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode, onRestoreImage: restoreImage, fetch: $csrfFetch })
 
 
 watch(noteConfig, () => {

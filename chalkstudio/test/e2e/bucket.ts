@@ -2,7 +2,7 @@ import { test, expect, afterAll } from "vitest"
 import { Storage } from "@google-cloud/storage"
 import { useBucket } from "../../server/utils/images/bucket"
 
-const { uploadImage, signImageUrl } = useBucket()
+const { uploadImage, signImageUrl, imageExists } = useBucket()
 const body = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex")
 const uploaded: string[] = []
 
@@ -28,4 +28,11 @@ test("Bucket upload and signed read", async () => {
 
 	const unsigned = await fetch(`${url.origin}${url.pathname}`)
 	expect(unsigned.status).toBe(403)
+})
+
+test("Bucket reports whether an image exists", async () => {
+	const { objectName } = await uploadImage("e2e", body, "image/png")
+	uploaded.push(objectName)
+	expect(await imageExists(objectName)).toBe(true)
+	expect(await imageExists(`boards/e2e/${crypto.randomUUID()}`)).toBe(false)
 })

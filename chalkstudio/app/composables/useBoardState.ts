@@ -11,7 +11,7 @@ type useBoardStateOptions = {
 	loading: Ref<boolean>
 	room: ComputedRef<string>
 	onRestore?: (node: KonvaTypes.Node) => void
-	onRestoreImage?: (imageId: string, rect: { x: number, y: number, width: number, height: number }) => void | Promise<void>
+	onRestoreImage?: (imageNode: KonvaTypes.Image) => void | Promise<void>
 	fetch: NuxtApp['$csrfFetch']
 }
 const useBoardState = (options: useBoardStateOptions) => {
@@ -40,7 +40,7 @@ const useBoardState = (options: useBoardStateOptions) => {
 		const layer = options.getLayer()
 		if (!layer) return
 		const parsedState = JSON.parse(boardState)
-		const imageIds = new Map<string, { x: number, y: number, width: number, height: number }>()
+		const imageNodes: KonvaTypes.Image[] = []
 		parsedState?.children?.forEach((child: any) => {
 			if (child.className === 'Layer') {
 				const actualChildren = child.children
@@ -55,18 +55,14 @@ const useBoardState = (options: useBoardStateOptions) => {
 						options.onRestore?.(group)
 						layer.batchDraw()
 					} else if (child.className === 'Image') {
-						const imageId = child.attrs.id
-						imageIds.set(imageId, {
-							x: child.attrs.x,
-							y: child.attrs.y,
-							width: child.attrs.width,
-							height: child.attrs.height,
-						})
+						const imageNode = Konva.Node.create(child) as KonvaTypes.Image
+						layer.add(imageNode)
+						imageNodes.push(imageNode)
 					}
 				})
 			}
 		})
-		await Promise.all(Array.from(imageIds, ([imageId, rect]) => options.onRestoreImage?.(imageId, rect)))
+		await Promise.all(imageNodes.map((imageNode) => options.onRestoreImage?.(imageNode)))
 	}
 	const saveBoard = (): string => {
 		const stage = options?.getStage()

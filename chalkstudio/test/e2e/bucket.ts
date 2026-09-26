@@ -14,7 +14,7 @@ afterAll(async () => {
 test("Bucket upload and signed read", async () => {
 	const { imageId, objectName } = await uploadImage("e2e", body, "image/png")
 	uploaded.push(objectName)
-	expect(objectName).toBe(`boards/e2e/${imageId}.png`)
+	expect(objectName).toBe(`boards/e2e/${imageId}`)
 
 	const url = new URL(await signImageUrl(objectName))
 	expect(url.searchParams.get("X-Goog-Algorithm")).toBe("GOOG4-RSA-SHA256")

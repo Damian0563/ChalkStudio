@@ -1,19 +1,23 @@
 import type { UploadedImage } from '#shared/types'
 import type { QuickNotice } from '~/types/general'
+import type { BoardEvent } from '~/types/board'
 import type KonvaTypes from 'konva'
 type ImageOptions = {
 	quickNotice: Ref<QuickNotice | undefined>
+	getUser: () => string
 	room: ComputedRef<string>
 	getLayer: () => KonvaTypes.Layer | undefined
 	getStage: () => KonvaTypes.Stage | undefined
 	fetch: ReturnType<typeof useRequestFetch>
+	send: (message: string) => void
 }
 
 export const IMAGE_PLACEHOLDER_NAME = 'image-placeholder'
 
 export const useImages = (options: ImageOptions) => {
 	const { $csrfFetch } = useNuxtApp()
-	const { quickNotice, room } = options
+	const { quickNotice, room, send, getUser } = options
+	const traces = new Map<string, () => void>()
 	const Konva = useKonva()
 
 	const readImageSize = async (file: File) => {
@@ -73,8 +77,14 @@ export const useImages = (options: ImageOptions) => {
 		const x = boardPos.x - size.width / 2
 		const y = boardPos.y - size.height / 2
 		const destroyPlaceholder = createPlaceholder(layer, x, y, size.width, size.height)
+		const traceId = crypto.randomUUID()
+		send(JSON.stringify({ type: 'image-placeholder', user: getUser(), data: { x, y, width: size.width, height: size.height, traceId } }))
+		const cancel = () => {
+			destroyPlaceholder()
+			send(JSON.stringify({ type: 'image-cancel', user: getUser(), data: { traceId } }))
+		}
 		const uploaded = await declareImage(file)
-		if (!uploaded) return destroyPlaceholder()
+		if (!uploaded) return cancel()
 		const image = new Image()
 		image.crossOrigin = 'anonymous'
 		image.onload = () => {
@@ -89,27 +99,50 @@ export const useImages = (options: ImageOptions) => {
 			})
 			layer.add(imageNode)
 			layer.batchDraw()
+			send(JSON.stringify({
+				type: 'image-new',
+				user: getUser(),
+				data: { img: imageNode.toObject(), traceId },
+			}))
 		}
 		image.onerror = () => {
-			destroyPlaceholder()
+			cancel()
 			quickNotice.value = { message: 'Error loading image', type: 'error' }
 		}
 		image.src = uploaded.url
 	}
 
-	const restoreImage = async (imageId: string, rect: { x: number, y: number, width: number, height: number }) => {
+	const receiveRemoteImage = (event: BoardEvent) => {
 		const layer = options.getLayer()
 		if (!layer) return
-		const destroyPlaceholder = createPlaceholder(layer, rect.x, rect.y, rect.width, rect.height)
-		const url = await getImageUrl(imageId)
-		console.log(url)
-		if (!url) return
+		const traceId = event.data?.traceId as string | undefined
+		if (event.type === 'image-placeholder' && traceId) {
+			const { x, y, width, height } = event.data
+			traces.set(traceId, createPlaceholder(layer, x, y, width, height))
+			return
+		}
+		if (traceId) {
+			traces.get(traceId)?.()
+			traces.delete(traceId)
+		}
+		if (event.type === 'image-new' && event.data?.img) {
+			const imageNode = Konva.Node.create(event.data.img) as KonvaTypes.Image
+			layer.add(imageNode)
+			void restoreImage(imageNode)
+		}
+	}
+
+	const restoreImage = async (imageNode: KonvaTypes.Image) => {
+		const layer = imageNode.getLayer()
+		if (!layer) return
+		const destroyPlaceholder = createPlaceholder(layer, imageNode.x(), imageNode.y(), imageNode.width(), imageNode.height())
+		const url = await getImageUrl(imageNode.id())
+		if (!url) return destroyPlaceholder()
 		const image = new Image()
 		image.crossOrigin = 'anonymous'
 		image.onload = () => {
 			destroyPlaceholder()
-			const imageNode = new Konva.Image({ id: imageId, image, ...rect })
-			layer.add(imageNode)
+			imageNode.image(image)
 			layer.batchDraw()
 		}
 		image.onerror = () => {
@@ -172,5 +205,6 @@ export const useImages = (options: ImageOptions) => {
 	return {
 		openImagePicker: () => openImagePicker(),
 		restoreImage,
+		receiveRemoteImage,
 	}
 }

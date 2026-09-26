@@ -58,7 +58,7 @@ export type HistoryEvent = {
 }
 
 export type BoardEvent = {
-	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'state' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete' | 'stickyNote-transform' | 'image-new' | 'image-move' | 'image-dragStart' | 'image-dragEnd' | 'image-delete' | 'image-transform'
+	type: 'drawStart' | 'draw' | 'drawEnd' | 'join' | 'leave' | 'pan' | 'state' | 'stickyNote-new' | 'stickyNote-edit' | 'stickyNote-move' | 'stickyNote-dragStart' | 'stickyNote-dragEnd' | 'stickyNote-delete' | 'stickyNote-transform' | 'image-new' | 'image-move' | 'image-dragStart' | 'image-dragEnd' | 'image-delete' | 'image-transform' | 'image-placeholder' | 'image-cancel'
 	user: string
 	data: any
 	color?: string

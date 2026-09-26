@@ -190,7 +190,7 @@ const { send, join, leave, rosterPeers, isStateProvider } = useBoardWebSocket({
 })
 
 
-const restoreNode = (node: KonvaTypes.Node) => restoreStickyNote(node)
+const restoreNode = (node: KonvaTypes.Node) => node instanceof Konva.Image ? void restoreImage(node) : restoreStickyNote(node)
 const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 	getLayer,
 	getStage,
@@ -201,7 +201,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
-const { openImagePicker, restoreImage, receiveRemoteImage } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send })
+const { openImagePicker, restoreImage, receiveRemoteImage } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send, recordEvent })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,

@@ -10,13 +10,14 @@ type ImageOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
 	fetch: ReturnType<typeof useRequestFetch>
 	send: (message: string) => void
+	recordEvent: (event: BoardEvent) => void
 }
 
 export const IMAGE_PLACEHOLDER_NAME = 'image-placeholder'
 
 export const useImages = (options: ImageOptions) => {
 	const { $csrfFetch } = useNuxtApp()
-	const { quickNotice, room, send, getUser } = options
+	const { quickNotice, room, send, getUser, recordEvent } = options
 	const traces = new Map<string, () => void>()
 	const Konva = useKonva()
 
@@ -99,11 +100,9 @@ export const useImages = (options: ImageOptions) => {
 			})
 			layer.add(imageNode)
 			layer.batchDraw()
-			send(JSON.stringify({
-				type: 'image-new',
-				user: getUser(),
-				data: { img: imageNode.toObject(), traceId },
-			}))
+			const data = { ...imageNode.toObject(), traceId }
+			send(JSON.stringify({ type: 'image-new', user: getUser(), data }))
+			recordEvent({ type: 'image-new', user: getUser(), data })
 		}
 		image.onerror = () => {
 			cancel()
@@ -125,8 +124,8 @@ export const useImages = (options: ImageOptions) => {
 			traces.get(traceId)?.()
 			traces.delete(traceId)
 		}
-		if (event.type === 'image-new' && event.data?.img) {
-			const imageNode = Konva.Node.create(event.data.img) as KonvaTypes.Image
+		if (event.type === 'image-new' && event.data?.attrs) {
+			const imageNode = Konva.Node.create(event.data) as KonvaTypes.Image
 			layer.add(imageNode)
 			void restoreImage(imageNode)
 		}

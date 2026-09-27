@@ -10,16 +10,22 @@ type ImageOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
 	fetch: ReturnType<typeof useRequestFetch>
 	send: (message: string) => void
-	recordEvent: (event: BoardEvent) => void
+	recordEvent: (event: BoardEvent, before?: object | null) => void
 }
 
 export const IMAGE_PLACEHOLDER_NAME = 'image-placeholder'
+const IMAGE_TRANSFORMER_NAME = 'image-transformer'
+const IMAGE_MIN_SIZE = 24
 
 export const useImages = (options: ImageOptions) => {
 	const { $csrfFetch } = useNuxtApp()
 	const { quickNotice, room, send, getUser, recordEvent } = options
 	const traces = new Map<string, () => void>()
 	const Konva = useKonva()
+	const { showDiscardButton, hideDiscardButton } = useDiscardButton({ getLayer: options.getLayer })
+	const selectedImage = shallowRef<KonvaTypes.Image | null>(null)
+	const isImageSelected = computed(() => selectedImage.value !== null)
+	let imageTransformer: KonvaTypes.Transformer | null = null
 
 	const readImageSize = async (file: File) => {
 		try {
@@ -103,6 +109,7 @@ export const useImages = (options: ImageOptions) => {
 			const data = { ...imageNode.toObject(), traceId }
 			send(JSON.stringify({ type: 'image-new', user: getUser(), data }))
 			recordEvent({ type: 'image-new', user: getUser(), data })
+			attachImageHandlers(imageNode)
 		}
 		image.onerror = () => {
 			cancel()
@@ -111,9 +118,119 @@ export const useImages = (options: ImageOptions) => {
 		image.src = uploaded.url
 	}
 
+	const showImageDiscardButton = (imageNode: KonvaTypes.Image) => {
+		showDiscardButton(imageNode, {
+			onDiscard: (image) => {
+				const data = image.toObject()
+				cancelImageSelection()
+				recordEvent({ type: 'image-delete', user: getUser(), data })
+				send(JSON.stringify({ type: 'image-delete', user: getUser(), data }))
+			},
+		})
+	}
+
+	const cancelImageSelection = (id?: string) => {
+		const imageNode = selectedImage.value
+		if (!imageNode || (id && imageNode.id() !== id)) return
+		hideDiscardButton(imageNode)
+		imageTransformer?.destroy()
+		imageTransformer = null
+		selectedImage.value = null
+		options.getLayer()?.batchDraw()
+	}
+
+	const selectImage = (imageNode: KonvaTypes.Image) => {
+		const layer = options.getLayer()
+		if (!layer || selectedImage.value === imageNode) return
+		cancelImageSelection()
+		selectedImage.value = imageNode
+		imageTransformer = new Konva.Transformer({
+			name: IMAGE_TRANSFORMER_NAME,
+			nodes: [imageNode],
+			rotateEnabled: false,
+			flipEnabled: false,
+			keepRatio: true,
+			enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right'],
+			padding: 2,
+			anchorSize: 8,
+			anchorCornerRadius: 2,
+			anchorFill: '#1a2332',
+			anchorStroke: '#f5f0e8',
+			borderStroke: '#f5f0e8',
+			borderDash: [4, 4],
+			boundBoxFunc: (oldBox, newBox) => {
+				const scale = imageNode.getAbsoluteScale()
+				const tooSmall = newBox.width / (scale.x || 1) < IMAGE_MIN_SIZE || newBox.height / (scale.y || 1) < IMAGE_MIN_SIZE
+				return tooSmall ? oldBox : newBox
+			},
+		})
+		imageTransformer.on('mousedown.image touchstart.image', (e) => {
+			e.cancelBubble = true
+		})
+		layer.add(imageTransformer)
+		showImageDiscardButton(imageNode)
+		layer.batchDraw()
+	}
+
+	const handleImageDoubleClick = () => {
+		const layer = options.getLayer()
+		const pointer = options.getStage()?.getPointerPosition()
+		if (!layer || !pointer) return
+		const imageNode = layer.find<KonvaTypes.Image>('Image').reverse().find((node) => {
+			const box = node.getClientRect()
+			return pointer.x >= box.x && pointer.x <= box.x + box.width && pointer.y >= box.y && pointer.y <= box.y + box.height
+		})
+		if (imageNode) selectImage(imageNode)
+	}
+
+	const detachImageHandlers = (imageNode: KonvaTypes.Image) => {
+		imageNode.off('.image')
+	}
+
+	const attachImageHandlers = (imageNode: KonvaTypes.Image) => {
+		detachImageHandlers(imageNode)
+		imageNode.listening(true)
+		imageNode.draggable(false)
+		let resizeOrigin: object | null = null
+		imageNode.on('transformstart.image', (e) => {
+			e.cancelBubble = true
+			resizeOrigin = imageNode.toObject()
+			hideDiscardButton(imageNode)
+		})
+		imageNode.on('transform.image', (e) => {
+			e.cancelBubble = true
+			imageNode.size({ width: imageNode.width() * imageNode.scaleX(), height: imageNode.height() * imageNode.scaleY() })
+			imageNode.scale({ x: 1, y: 1 })
+		})
+		imageNode.on('transformend.image', (e) => {
+			e.cancelBubble = true
+			const data = imageNode.toObject()
+			recordEvent({ type: 'image-transform', user: getUser(), data }, resizeOrigin)
+			send(JSON.stringify({ type: 'image-transform', user: getUser(), data }))
+			resizeOrigin = null
+			if (selectedImage.value === imageNode) showImageDiscardButton(imageNode)
+		})
+	}
+
 	const receiveRemoteImage = (event: BoardEvent) => {
 		const layer = options.getLayer()
 		if (!layer) return
+		if (event.type === 'image-transform' || event.type === 'image-delete') {
+			const imageNode = layer.findOne(`#${event.data?.attrs?.id}`) as KonvaTypes.Image | undefined
+			if (!imageNode) return
+			if (event.type === 'image-delete') {
+				cancelImageSelection(imageNode.id())
+				imageNode.destroy()
+			} else {
+				imageNode.setAttrs(event.data.attrs)
+				if (selectedImage.value === imageNode) {
+					hideDiscardButton(imageNode)
+					showImageDiscardButton(imageNode)
+				}
+			}
+			layer.batchDraw()
+			return
+		}
 		const traceId = event.data?.traceId as string | undefined
 		if (event.type === 'image-placeholder' && traceId) {
 			const { x, y, width, height } = event.data
@@ -134,6 +251,7 @@ export const useImages = (options: ImageOptions) => {
 	const restoreImage = async (imageNode: KonvaTypes.Image) => {
 		const layer = imageNode.getLayer()
 		if (!layer) return
+		attachImageHandlers(imageNode)
 		const destroyPlaceholder = createPlaceholder(layer, imageNode.x(), imageNode.y(), imageNode.width(), imageNode.height())
 		const url = await getImageUrl(imageNode.id())
 		if (!url) return destroyPlaceholder()
@@ -205,5 +323,10 @@ export const useImages = (options: ImageOptions) => {
 		openImagePicker: () => openImagePicker(),
 		restoreImage,
 		receiveRemoteImage,
+		isImageSelected,
+		handleImageDoubleClick,
+		cancelImageSelection,
+		attachImageHandlers,
+		detachImageHandlers,
 	}
 }

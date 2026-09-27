@@ -5,7 +5,7 @@ import { AuthService, authService } from "./auth";
 export const accessCookieName = "accessToken";
 export const refreshCookieName = "refreshToken";
 
-const cookieBase = {
+export const cookieBase = {
 	httpOnly: true,
 	secure: !import.meta.dev,
 	sameSite: "lax",

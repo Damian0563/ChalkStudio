@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import type { UserJWTId } from "#shared/types";
+import type { UserIdentity, UserJWTId } from "#shared/types";
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
@@ -67,11 +67,13 @@ export class AuthService {
 		}
 	}
 
-	public refreshJWT(token: string): string | Error {
+	public refreshJWT(token: string): { token: string; identity: UserIdentity } | Error {
 		const payload = this.verifyJWT(token);
 		if (payload instanceof Error) return payload;
 		const { exp, iat, ...identity } = payload;
-		return this.generateJWT(identity);
+		const refreshed = this.generateJWT(identity);
+		if (refreshed instanceof Error) return refreshed;
+		return { token: refreshed, identity };
 	}
 
 	// Stored as `<salt>.<hash>` so the salt travels with the hash it produced.

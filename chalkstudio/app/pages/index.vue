@@ -75,7 +75,8 @@
 <script setup lang="ts">
 import { motion } from 'motion-v'
 const { announce } = useAnnounce()
-const { error } = useFetch('/api/health')
+const { data, error } = await useFetch('/api/health', { method: 'GET' })
+if (data.value?.authenticated) await navigateTo('/workspace', { replace: true })
 watch(error, (fetchError) => {
 	if (fetchError) {
 		announce({

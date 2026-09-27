@@ -193,7 +193,7 @@ test('jwt-expiry', () => {
 		// and a window measured from the refresh, not from the original iat
 		const refreshed = auth.refreshJWT(token as string)
 		expect(refreshed).not.toBeInstanceOf(Error)
-		expect(auth.verifyJWT(refreshed as string)).toMatchObject({
+		expect(auth.verifyJWT((refreshed as { token: string }).token)).toMatchObject({
 			userId: user.userId,
 			username: user.username,
 			role: user.role,
@@ -214,9 +214,9 @@ test('jwt-expiry', () => {
 		expect((result as Error).message).toBe('Token expired')
 
 		// an expired token cannot be refreshed back into a valid one
-		result = auth.refreshJWT(token as string)
-		expect(result).toBeInstanceOf(Error)
-		expect((result as Error).message).toBe('Token expired')
+		const expiredRefresh = auth.refreshJWT(token as string)
+		expect(expiredRefresh).toBeInstanceOf(Error)
+		expect((expiredRefresh as Error).message).toBe('Token expired')
 	}
 	vi.useRealTimers()
 })

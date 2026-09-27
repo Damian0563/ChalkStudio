@@ -15,6 +15,8 @@ type UseDrawingOptions = {
 	isEditing: Ref<boolean>
 	cancelNoteEdit: () => void
 	isStickyNoteTarget: (node: KonvaTypes.Node | null, stage: KonvaTypes.Stage | undefined) => boolean
+	isImageSelected: Ref<boolean>
+	cancelImageSelection: () => void
 }
 
 export const useDrawing = (options: UseDrawingOptions) => {
@@ -36,6 +38,10 @@ export const useDrawing = (options: UseDrawingOptions) => {
 		if (options.isStickyNoteTarget(e.target, options.getStage())) return
 		if (options.isEditing.value) {
 			options.cancelNoteEdit()
+			return
+		}
+		if (options.isImageSelected.value) {
+			options.cancelImageSelection()
 			return
 		}
 		if (options.penPanelOpen.value) {

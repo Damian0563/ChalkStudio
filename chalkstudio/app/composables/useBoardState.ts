@@ -69,7 +69,7 @@ const useBoardState = (options: useBoardStateOptions) => {
 		if (!stage) return ''
 		const board = stage.toObject()
 		board.children?.forEach((layer: any) => {
-			layer.children = layer.children?.filter((child: any) => child.attrs.name !== IMAGE_PLACEHOLDER_NAME)
+			layer.children = layer.children?.filter((child: any) => child.attrs.name !== IMAGE_PLACEHOLDER_NAME && child.attrs.name !== DISCARD_BUTTON_NAME)
 		})
 		return JSON.stringify(board)
 	}

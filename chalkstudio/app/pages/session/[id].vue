@@ -5,7 +5,7 @@
 			<Spinner :loading="loading" />
 			<v-stage ref="stageRef" :config="stageConfig" @contextmenu="handleContextMenu" @mousedown="handleMouseDown"
 				@mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchstart="handleMouseDown"
-				@touchmove="handleMouseMove" @touchend="handleMouseUp">
+				@touchmove="handleMouseMove" @touchend="handleMouseUp" @dblclick="handleImageDoubleClick" @dbltap="handleImageDoubleClick">
 				<v-layer ref="layerRef" />
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
@@ -165,7 +165,7 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 		group.destroy()
 		layer.batchDraw()
 	}
-	else if (event.type === 'image-placeholder' || event.type === 'image-new' || event.type === 'image-cancel') {
+	else if (event.type === 'image-placeholder' || event.type === 'image-new' || event.type === 'image-cancel' || event.type === 'image-transform' || event.type === 'image-delete') {
 		receiveRemoteImage(event)
 	}
 	else if (event.type === 'undo' || event.type === 'redo') {
@@ -176,6 +176,7 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 
 const closeEditorFor = (id: string | undefined) => {
 	if (id && id === noteConfig.value.groupId) cancelNoteEdit()
+	if (id) cancelImageSelection(id)
 }
 
 
@@ -201,7 +202,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
-const { openImagePicker, restoreImage, receiveRemoteImage } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send, recordEvent })
+const { openImagePicker, restoreImage, receiveRemoteImage, isImageSelected, cancelImageSelection, handleImageDoubleClick } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send, recordEvent })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,
@@ -216,6 +217,8 @@ const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	isEditing,
 	cancelNoteEdit,
 	isStickyNoteTarget,
+	isImageSelected,
+	cancelImageSelection,
 })
 
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom })

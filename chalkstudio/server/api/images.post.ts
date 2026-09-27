@@ -4,9 +4,9 @@ const { uploadImage, signImageUrl } = useBucket()
 const maxBytes = 10 * 1024 * 1024
 
 export default defineEventHandler(async (event): Promise<UploadedImage> => {
-	if (!event.context.user) {
-		throw createError({ statusCode: 401, statusMessage: 'Unauthorized', message: 'Please sign in to add images.' })
-	}
+	// if (!event.context.user) {
+	// 	throw createError({ statusCode: 401, statusMessage: 'Unauthorized', message: 'Please sign in to add images.' })
+	// }
 	const room = getQuery(event).room
 	if (typeof room !== 'string' || room.trim() === '') {
 		throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Missing board.' })

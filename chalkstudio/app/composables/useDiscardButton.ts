@@ -12,29 +12,38 @@ type DiscardButtonOptions = {
 	getLayer: () => KonvaTypes.Layer | undefined
 }
 
-type ShowDiscardButtonOptions = {
-	onDiscard?: (group: KonvaTypes.Group) => void
+type ShowDiscardButtonOptions<T extends KonvaTypes.Node> = {
+	onDiscard?: (node: T) => void
 	offset?: { x: number; y: number }
 	duration?: number
 }
 export default function useDiscardButton(options: DiscardButtonOptions) {
 	const Konva = useKonva()
+	const leafButtons = new WeakMap<KonvaTypes.Node, KonvaTypes.Group>()
 
-	const findDiscardButton = (group: KonvaTypes.Group | null | undefined): KonvaTypes.Group | undefined =>
-		group?.findOne(`.${DISCARD_BUTTON_NAME}`) as KonvaTypes.Group | undefined
+	const buttonHost = (node: KonvaTypes.Node): KonvaTypes.Container | null =>
+		node instanceof Konva.Container ? node : node.getParent()
 
-	const buttonPosition = (group: KonvaTypes.Group, offset: { x: number; y: number }) => {
-		const box = group.getClientRect({ relativeTo: group, skipShadow: true, skipStroke: true })
-		return { x: box.x + (box.width || group.width()) + offset.x, y: box.y + offset.y }
+	const findDiscardButton = (node: KonvaTypes.Node | null | undefined): KonvaTypes.Group | undefined => {
+		if (!node) return undefined
+		return node instanceof Konva.Container
+			? node.findOne(`.${DISCARD_BUTTON_NAME}`) as KonvaTypes.Group | undefined
+			: leafButtons.get(node)
 	}
 
-	const createDiscardButton = (
-		group: KonvaTypes.Group,
-		{ onDiscard, offset = { x: -2, y: 2 } }: ShowDiscardButtonOptions = {},
+	const buttonPosition = (node: KonvaTypes.Node, host: KonvaTypes.Container, offset: { x: number; y: number }) => {
+		const box = node.getClientRect({ relativeTo: host, skipShadow: true, skipStroke: true })
+		return { x: box.x + (box.width || node.width()) + offset.x, y: box.y + offset.y }
+	}
+
+	const createDiscardButton = <T extends KonvaTypes.Node>(
+		node: T,
+		host: KonvaTypes.Container,
+		{ onDiscard, offset = { x: -2, y: 2 } }: ShowDiscardButtonOptions<T> = {},
 	): KonvaTypes.Group => {
 		const button = new Konva.Group({
 			name: DISCARD_BUTTON_NAME,
-			...buttonPosition(group, offset),
+			...buttonPosition(node, host, offset),
 			opacity: 0,
 			listening: true,
 		})
@@ -58,7 +67,7 @@ export default function useDiscardButton(options: DiscardButtonOptions) {
 		button.add(new Konva.Line({ points: [-DISCARD_ARM, -DISCARD_ARM, DISCARD_ARM, DISCARD_ARM], ...crossOptions }))
 		button.add(new Konva.Line({ points: [-DISCARD_ARM, DISCARD_ARM, DISCARD_ARM, -DISCARD_ARM], ...crossOptions }))
 		const cursor = (style: string) => {
-			const container = group.getStage()?.container()
+			const container = node.getStage()?.container()
 			if (container) container.style.cursor = style
 		}
 		button.on('mouseenter.discard', (e) => {
@@ -73,31 +82,39 @@ export default function useDiscardButton(options: DiscardButtonOptions) {
 			cursor('default')
 			button.getLayer()?.batchDraw()
 		})
+		button.on('mousedown.discard touchstart.discard', (e) => {
+			e.cancelBubble = true
+		})
 		button.on('click.discard tap.discard', (e) => {
 			e.cancelBubble = true
 			cursor('default')
-			onDiscard?.(group)
-			group.destroy()
+			onDiscard?.(node)
+			hideDiscardButton(node)
+			node.destroy()
 			options.getLayer()?.batchDraw()
 		})
 		return button
 	}
 
-	const showDiscardButton = (group: KonvaTypes.Group, showOptions: ShowDiscardButtonOptions = {}): void => {
-		if (findDiscardButton(group)) return
-		const button = createDiscardButton(group, showOptions)
-		group.add(button)
+	const showDiscardButton = <T extends KonvaTypes.Node>(node: T, showOptions: ShowDiscardButtonOptions<T> = {}): void => {
+		const host = buttonHost(node)
+		if (!host || findDiscardButton(node)) return
+		const button = createDiscardButton(node, host, showOptions)
+		host.add(button)
+		if (!(node instanceof Konva.Container)) leafButtons.set(node, button)
 		const duration = showOptions.duration ?? 0.12
 		if (duration > 0) button.to({ opacity: 1, duration })
 		else button.opacity(1)
-		group.getLayer()?.batchDraw()
+		node.getLayer()?.batchDraw()
 	}
 
-	const hideDiscardButton = (group: KonvaTypes.Group | null | undefined): void => {
-		const button = findDiscardButton(group)
-		if (!button || !group) return
+	const hideDiscardButton = (node: KonvaTypes.Node | null | undefined): void => {
+		const button = findDiscardButton(node)
+		if (!button || !node) return
+		const layer = button.getLayer()
 		button.destroy()
-		group.getLayer()?.batchDraw()
+		leafButtons.delete(node)
+		layer?.batchDraw()
 	}
 
 	return {

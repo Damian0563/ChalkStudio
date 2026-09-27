@@ -1,1 +1,6 @@
-export default defineEventHandler(() => 'OK')
+export default defineEventHandler((event) => {
+	return {
+		status: 'ok',
+		authenticated: !!event.context.user,
+	}
+})

@@ -141,14 +141,18 @@
 </template>
 
 <script setup lang="ts">
-import { v4 as uuidv4 } from 'uuid'
 import { motion, AnimatePresence } from 'motion-v'
-import type { BoardAccess, BoardCreationPayload } from '#shared/types'
+import type { FetchError } from 'ofetch'
+import { boardDescriptionMax, boardTitleMax, emailPattern, type BoardAccess, type BoardCreationPayload } from '#shared/types'
+import type { QuickNotice } from '@/types/general'
 const boardCreation = defineModel<boolean>('boardCreation', { required: true })
 
-const TITLE_MAX = 80
-const DESCRIPTION_MAX = 280
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const props = defineProps<{ createBoard: (board: BoardCreationPayload) => Promise<string> }>()
+const emits = defineEmits<{ (e: 'load'): void; (e: 'message', notice: QuickNotice): void }>()
+
+const TITLE_MAX = boardTitleMax
+const DESCRIPTION_MAX = boardDescriptionMax
+const EMAIL_PATTERN = emailPattern
 const inputClass = 'w-full rounded-lg border border-chalk/10 bg-board/60 py-2.5 font-sans text-sm text-chalk placeholder:text-chalk-faint/50 transition-[border-color,box-shadow] focus:border-coral-soft/60 focus:outline-none focus:ring-2 focus:ring-coral/20 focus-visible:outline-none'
 
 const accessOptions: { value: BoardAccess; label: string; hint: string; icon: string }[] = [
@@ -217,14 +221,30 @@ const close = () => {
 	boardCreation.value = false
 }
 
-const onSubmit = () => {
+const onSubmit = async () => {
 	if (form.authorization === 'invite') addInvites()
 	if (!isReady.value || inviteError.value) return
-	createNewBoard()
+	await createNewBoard()
 }
 
-const createNewBoard = () => {
-	//do some work
-	navigateTo(`/session/${uuidv4()}`)
+const createNewBoard = async () => {
+	emits('load')
+	try {
+		const id = await props.createBoard({
+			title: form.title,
+			description: form.description,
+			authorization: form.authorization,
+			allowedUsers: form.allowedUsers,
+		})
+		close()
+		await navigateTo(`/session/${id}`)
+	} catch (error) {
+		emits('message', {
+			message: (error as FetchError).data?.message ?? 'An error occured while creating the board. Please try again later.',
+			type: 'error',
+		})
+	} finally {
+		emits('load')
+	}
 }
 </script>

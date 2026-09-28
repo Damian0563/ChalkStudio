@@ -1,7 +1,7 @@
 import pg from 'pg'
 import { v4 as uuid } from 'uuid'
 import { AuthTypes, Connector } from '@google-cloud/cloud-sql-connector'
-import type { UserSignUpPayload, UserIdentity } from '#shared/types'
+import type { UserSignUpPayload, UserIdentity, BoardCreationPayload, BoardInitDetails } from '#shared/types'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { boards, users, codes } from './schema'
 import { pushSchema } from 'drizzle-kit/api-postgres'
@@ -98,6 +98,24 @@ export const useDatabase = async () => {
 		return { identity: toIdentity(user), refreshToken }
 	}
 
+	const getRoomDetails = async (room: string): Promise<(BoardInitDetails & { ownerId: number }) | undefined> => {
+		const [board] = await pool.select({ id: boards.id, ownerId: boards.ownerId, title: boards.title, description: boards.description, authorization: boards.authorization, allowedUsers: boards.allowedUsers })
+			.from(boards).where(sql`${boards.id} = ${room}`)
+		if (!board) return
+		return {
+			ownerId: board.ownerId,
+			title: board.title,
+			description: board.description,
+			authorization: board.authorization,
+			allowedUsers: board.allowedUsers,
+		}
+	}
+
+	const getUserEmail = async (userId: string): Promise<string | undefined> => {
+		const [user] = await pool.select({ email: users.email }).from(users).where(sql`${users.id} = ${Number(userId)}`)
+		return user?.email
+	}
+
 	const insertLoginCode = async (email: string, code: string) => {
 		const mail = sql.identifier(codes.mail.name)
 		const codeCol = sql.identifier(codes.code.name)
@@ -127,6 +145,19 @@ export const useDatabase = async () => {
 		return exists !== undefined
 	}
 
+	const createBoard = async (ownerId: string, board: BoardCreationPayload): Promise<string> => {
+		const [created] = await pool.insert(boards).values({
+			id: uuid(),
+			ownerId: Number(ownerId),
+			title: board.title,
+			description: board.description || null,
+			authorization: board.authorization,
+			allowedUsers: board.authorization === 'invite' ? board.allowedUsers : [],
+			modifiedAt: sql`current_date`,
+		}).returning({ id: boards.id })
+		return created.id
+	}
+
 	return {
 		initConnection,
 		createUser,
@@ -135,5 +166,8 @@ export const useDatabase = async () => {
 		checkUserExists,
 		insertLoginCode,
 		consumeLoginCode,
+		createBoard,
+		getRoomDetails,
+		getUserEmail,
 	}
 }

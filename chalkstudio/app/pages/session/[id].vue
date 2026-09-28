@@ -21,6 +21,7 @@
 				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
 			<StickyNoteEditor ref="noteEditorRef" v-model:is-editing="isEditing" v-model:note-config="noteConfig"
 				:max-length="maxLength" @close="cancelNoteEdit" />
+			<BoardAccessModal :status="accessStatus" @join="joinAsGuest" />
 		</div>
 	</ClientOnly>
 </template>
@@ -47,14 +48,19 @@ const quickNotice = ref<QuickNotice | undefined>(undefined)
 
 const route = useRoute()
 const room = computed(() => route.params.id as string)
+const mail = computed(() => route.query.mail as string)
 
 const requestFetch = useRequestFetch()
-const { data, error } = await useAsyncData('board-meta', () => requestFetch('/api/board/init', { query: { room: room.value } }))
-if (error.value) {
-	console.error(error.value)
-	quickNotice.value = { message: 'Error loading board meta', type: 'error' }
+const { data, error } = await useAsyncData('board-meta', () => requestFetch('/api/board/init', { query: { room: room.value, mail: mail.value } }))
+const accessStatus = ref(error.value ? error.value.status ?? 500 : undefined)
+const storedUser = useLocalStorage<string | null>('chalkstudio-user', null)
+const user = ref(data.value ?? storedUser.value ?? `guest-${uuidv4().slice(0, 8)}`)
+const joinAsGuest = (username: string) => {
+	user.value = username
+	storedUser.value = username
+	accessStatus.value = undefined
+	join()
 }
-const user = ref(data.value ?? `guest-${uuidv4().slice(0, 8)}`)
 const Konva = useKonva()
 
 type VueKonvaComponentRef = {
@@ -192,7 +198,7 @@ const closeEditorFor = (id: string | undefined) => {
 
 const { send, join, leave, rosterPeers, isStateProvider } = useBoardWebSocket({
 	room,
-	user: user.value,
+	getUser: () => user.value,
 	onEvent: handleBoardEvent,
 	onError: (error) => {
 		console.error(error)
@@ -254,7 +260,7 @@ const setViewportSize = () => {
 let interval: any
 onMounted(() => {
 	loading.value = true
-	join()
+	if (!accessStatus.value) join()
 	setViewportSize()
 	window.addEventListener('resize', setViewportSize)
 	window.addEventListener('beforeunload', autoSaveBoardState)

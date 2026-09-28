@@ -2,7 +2,7 @@ import type { BoardEvent } from '~/types/board'
 
 type UseBoardWebSocketOptions = {
 	room: MaybeRefOrGetter<string>
-	user: string
+	getUser: () => string
 	onEvent: (event: BoardEvent) => void
 	onError?: (error: unknown) => void
 }
@@ -24,18 +24,18 @@ export function useBoardWebSocket(options: UseBoardWebSocketOptions) {
 		Object.keys(event.others ?? {}).filter((id) => id !== event.user)
 
 	const isStateProvider = (event: BoardEvent): boolean =>
-		rosterPeers(event).sort()[0] === options.user
+		rosterPeers(event).sort()[0] === options.getUser()
 
 	const join = () => {
 		send(JSON.stringify({
 			type: 'join',
-			user: options.user,
+			user: options.getUser(),
 			color: localStorage.getItem('spriteColor'),
 		}))
 	}
 
 	const leave = () => {
-		send(JSON.stringify({ type: 'leave', user: options.user }))
+		send(JSON.stringify({ type: 'leave', user: options.getUser() }))
 	}
 
 	return { send, join, leave, rosterPeers, isStateProvider }

@@ -1,10 +1,8 @@
 import type { BoardEvent, BoardUser } from '~/types/board'
-import { v4 as uuidv4 } from 'uuid'
 
 const FALLBACK_COLOR = '#000000'
 
-export function useBoardUsers() {
-	const user = ref(uuidv4().slice(0, 8))
+export function useBoardUsers(user: Ref<string>) {
 	const users = ref(new Map<string, BoardUser>([[user.value, { name: user.value, color: FALLBACK_COLOR }]]))
 
 	const userColor = (userId: string, color?: string) =>
@@ -40,7 +38,6 @@ export function useBoardUsers() {
 	}
 
 	return {
-		user,
 		users,
 		applyRoster,
 		trackPresence,

@@ -5,7 +5,8 @@
 			<Spinner :loading="loading" />
 			<v-stage ref="stageRef" :config="stageConfig" @contextmenu="handleContextMenu" @mousedown="handleMouseDown"
 				@mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchstart="handleMouseDown"
-				@touchmove="handleMouseMove" @touchend="handleMouseUp" @dblclick="handleImageDoubleClick" @dbltap="handleImageDoubleClick">
+				@touchmove="handleMouseMove" @touchend="handleMouseUp" @dblclick="handleImageDoubleClick"
+				@dbltap="handleImageDoubleClick">
 				<v-layer ref="layerRef" />
 			</v-stage>
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
@@ -26,6 +27,7 @@
 
 <script setup lang="ts">
 import type KonvaTypes from 'konva'
+import { v4 as uuidv4 } from 'uuid'
 import type { BoardEvent, Tool, BoardSettings, HistoryEvent } from '~/types/board'
 import type { BoardMeta } from '#shared/types'
 import type { QuickNotice } from '~/types/general'
@@ -45,6 +47,14 @@ const quickNotice = ref<QuickNotice | undefined>(undefined)
 
 const route = useRoute()
 const room = computed(() => route.params.id as string)
+
+const requestFetch = useRequestFetch()
+const { data, error } = await useAsyncData('board-meta', () => requestFetch('/api/board/init', { query: { room: room.value } }))
+if (error.value) {
+	console.error(error.value)
+	quickNotice.value = { message: 'Error loading board meta', type: 'error' }
+}
+const user = ref(data.value ?? `guest-${uuidv4().slice(0, 8)}`)
 const Konva = useKonva()
 
 type VueKonvaComponentRef = {
@@ -67,7 +77,7 @@ const color = ref('#f5f0e8')
 const strokeWidth = ref(5)
 const tool = ref<Tool>('pen')
 
-const { user, users, applyRoster, trackPresence, updatePan } = useBoardUsers()
+const { users, applyRoster, trackPresence, updatePan } = useBoardUsers(user)
 
 const stageRef = ref<VueKonvaComponentRef>()
 const layerRef = ref<VueKonvaComponentRef>()

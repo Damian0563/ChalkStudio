@@ -211,6 +211,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			fontFamily: note.font,
 			fontStyle: String(note.fontWeight.value),
 			align: note.align,
+			fill: note.textColor,
 			listening: false,
 		})
 		const rect = new Konva.Rect({
@@ -458,7 +459,7 @@ export const useStickyNotes = (options?: StickyNoteOptions) => {
 			options?.recordEvent?.({ type: 'stickyNote-dragEnd', user: editor, data })
 			send(JSON.stringify({ type: 'stickyNote-dragEnd', user: editor, data }))
 		})
-		group.on('dblclick.sticky', () => {
+		group.on('click.sticky tap.sticky', () => {
 			const textNode = group.findOne('Text') as KonvaTypes.Text | undefined
 			const rect = group.findOne('Rect') as KonvaTypes.Rect | undefined
 			if (!textNode || !rect) return

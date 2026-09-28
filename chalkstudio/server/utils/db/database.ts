@@ -116,6 +116,11 @@ export const useDatabase = async () => {
 		return user?.email
 	}
 
+	const getUserByMail = async (mail: string): Promise<UserIdentity | undefined> => {
+		const [user] = await pool.select({ id: users.id, name: users.name, role: users.role }).from(users).where(sql`${users.email} = ${mail}`)
+		return user ? toIdentity(user) : undefined
+	}
+
 	const insertLoginCode = async (email: string, code: string) => {
 		const mail = sql.identifier(codes.mail.name)
 		const codeCol = sql.identifier(codes.code.name)
@@ -169,5 +174,6 @@ export const useDatabase = async () => {
 		createBoard,
 		getRoomDetails,
 		getUserEmail,
+		getUserByMail,
 	}
 }

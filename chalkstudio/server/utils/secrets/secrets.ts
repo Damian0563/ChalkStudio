@@ -1,7 +1,7 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 // Mirrors local.secret_names in main.tf: each secret Terraform provisions is stored
 // under the exact name of the environment variable the app reads it from.
-const secretNames = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME"] as const
+const secretNames = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL"] as const
 
 export const useSecrets = () => {
 	// A PG_HOST points the app at a local Postgres (docker-compose), so the Cloud SQL

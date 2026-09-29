@@ -1,13 +1,17 @@
 import { CloudTasksClient } from "@google-cloud/tasks";
 import { OAuth2Client } from "google-auth-library";
 import type { H3Event } from "h3";
-import { useMail, type ConfirmationMail } from "../mailing/mail";
+import { useMail, type ConfirmationMail, type InviteMail } from "../mailing/mail";
 
 const taskRunners = {
 	"send-confirmation": {
-		queue: "email",
+		queue: "email-confirmation",
 		run: (payload: ConfirmationMail) => useMail().sendConfirmation(payload),
 	},
+	"send-invites": {
+		queue: "email-board-invitation",
+		run: (payload: InviteMail) => useMail().sendInvite(payload),
+	}
 } satisfies Record<string, { queue: string; run: (payload: never) => Promise<void> }>
 
 export type TaskName = keyof typeof taskRunners

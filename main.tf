@@ -49,7 +49,7 @@ locals {
   # under its own name. PG_HOST / PG_PORT are deliberately absent: they exist only
   # to point local development at docker-compose, and setting them in the deployed
   # environment would bypass the Cloud SQL connector.
-  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME"]
+  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL"]
 
   secret_values = {
     JWT_SECRET         = var.jwt_secret
@@ -57,6 +57,7 @@ locals {
     PG_PASS            = var.pg_pass
     PG_NAME            = var.pg_name
     PG_CONNECTION_NAME = google_sql_database_instance.main.connection_name
+    URL                = local.service_url
   }
 }
 
@@ -171,8 +172,10 @@ resource "google_service_account" "tasks_invoker" {
   display_name = "Chalk Studio task dispatcher"
 }
 
+# One queue per mail task, named after the `queue` of its runner in server/utils/tasks/tasks.ts.
 resource "google_cloud_tasks_queue" "email" {
-  name     = "email"
+  for_each = toset(["email-confirmation", "email-board-invitation"])
+  name     = each.key
   location = var.region
 
   rate_limits {
@@ -212,47 +215,48 @@ resource "google_cloud_tasks_queue" "reviews" {
 
 
 
-resource "google_cloud_run_v2_service" "app" {
-  name                = local.service_name
-  location            = var.region
-  deletion_protection = false
-  ingress             = "INGRESS_TRAFFIC_ALL"
-
-  template {
-    service_account                  = google_service_account.app.email
-    max_instance_request_concurrency = 80
-
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 4
-    }
-
-    containers {
-      image = "${var.region}-docker.pkg.dev/${var.project}/${google_artifact_registry_repository.main.repository_id}/${local.service_name}:latest"
-      ports {
-        container_port = 3000
-      }
-      env {
-        name  = "SERVICE_URL"
-        value = local.service_url
-      }
-      env {
-        name  = "TASKS_LOCATION"
-        value = var.region
-      }
-      env {
-        name  = "TASKS_INVOKER_SA"
-        value = google_service_account.tasks_invoker.email
-      }
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [template[0].containers[0].image, client, client_version]
-  }
-
-  depends_on = [google_project_service.run]
-}
+# Commented out until an image exists at the artifact repository; re-enable and apply once it is pushed.
+# resource "google_cloud_run_v2_service" "app" {
+#   name                = local.service_name
+#   location            = var.region
+#   deletion_protection = false
+#   ingress             = "INGRESS_TRAFFIC_ALL"
+# 
+#   template {
+#     service_account                  = google_service_account.app.email
+#     max_instance_request_concurrency = 80
+# 
+#     scaling {
+#       min_instance_count = 0
+#       max_instance_count = 4
+#     }
+# 
+#     containers {
+#       image = "${var.region}-docker.pkg.dev/${var.project}/${google_artifact_registry_repository.main.repository_id}/${local.service_name}:latest"
+#       ports {
+#         container_port = 3000
+#       }
+#       env {
+#         name  = "SERVICE_URL"
+#         value = local.service_url
+#       }
+#       env {
+#         name  = "TASKS_LOCATION"
+#         value = var.region
+#       }
+#       env {
+#         name  = "TASKS_INVOKER_SA"
+#         value = google_service_account.tasks_invoker.email
+#       }
+#     }
+#   }
+# 
+#   lifecycle {
+#     ignore_changes = [template[0].containers[0].image, client, client_version]
+#   }
+# 
+#   depends_on = [google_project_service.run]
+# }
 
 output "pg_connection_name" {
   description = "Value for PG_CONNECTION_NAME in the app environment."

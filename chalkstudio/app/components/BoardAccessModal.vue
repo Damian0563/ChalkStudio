@@ -29,7 +29,7 @@
 							</div>
 						</div>
 
-						<div v-if="isGuest" class="flex flex-col gap-1.5">
+						<div v-if="picksUsername" class="flex flex-col gap-1.5">
 							<label for="board-access-username" class="text-xs font-semibold text-chalk-muted">Username</label>
 							<div class="relative">
 								<Icon name="lucide:user"
@@ -47,7 +47,7 @@
 							class="rounded-lg px-4 py-2.5 font-sans text-sm font-semibold text-chalk-faint transition-colors hover:bg-chalk/[0.06] hover:text-chalk">
 							Go home
 						</NuxtLink>
-						<button v-if="isGuest" type="submit" :disabled="!username.trim()"
+						<button v-if="picksUsername" type="submit" :disabled="!username.trim()"
 							class="group flex items-center justify-center gap-2 rounded-lg bg-coral px-4 py-2.5 font-sans text-sm font-semibold text-chalk transition-colors hover:bg-coral-soft disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-coral">
 							Join board
 							<Icon name="lucide:arrow-right"
@@ -77,12 +77,18 @@ const USERNAME_MAX = 32
 const username = ref('')
 const usernameInput = ref<HTMLInputElement | null>(null)
 
-const isGuest = computed(() => props.status === 401)
+const picksUsername = computed(() => props.status === 401 || props.status === 409)
 
 const content = computed(() => {
 	if (props.status === 401) return {
 		title: 'Choose a username',
 		message: 'Pick a name so others on the board know who you are.',
+		icon: 'lucide:user-round-pen',
+		iconClass: 'border-coral/25 bg-coral/10 text-coral-soft',
+	}
+	if (props.status === 409) return {
+		title: 'Username taken',
+		message: 'Someone on this board already goes by that name. Pick another so others can tell you apart.',
 		icon: 'lucide:user-round-pen',
 		iconClass: 'border-coral/25 bg-coral/10 text-coral-soft',
 	}
@@ -100,13 +106,13 @@ const content = computed(() => {
 	}
 })
 
-watch(isGuest, (guest) => {
-	if (guest) nextTick(() => usernameInput.value?.focus())
+watch(picksUsername, (picks) => {
+	if (picks) nextTick(() => usernameInput.value?.focus())
 }, { immediate: true })
 
 const onSubmit = () => {
 	const name = username.value.trim()
-	if (!isGuest.value || !name) return
+	if (!picksUsername.value || !name) return
 	emits('join', name)
 }
 </script>

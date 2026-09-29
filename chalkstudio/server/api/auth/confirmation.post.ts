@@ -12,8 +12,6 @@ export default defineEventHandler(async (event) => {
 	}
 
 	const { checkUserExists, insertLoginCode } = await useDatabase()
-	// Both branches answer with the same empty 204. An address that is already registered
-	// simply gets no code minted for it, so the reply cannot be read as an account probe.
 	if (await checkUserExists(email)) return null
 
 	const code: string = getRandomCode()

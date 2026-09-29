@@ -1,5 +1,5 @@
 import { boardAccessModes, boardDescriptionMax, boardTitleMax, emailPattern, type BoardCreationPayload, type BoardMeta } from '#shared/types'
-
+import { useTasks } from '#server/utils/tasks/tasks'
 const badRequest = (message: string) =>
 	createError({ statusCode: 400, statusMessage: 'Bad Request', message })
 
@@ -26,5 +26,7 @@ export default defineEventHandler(async (event): Promise<Pick<BoardMeta, 'id'>> 
 
 	const { createBoard } = await useDatabase()
 	const id = await createBoard(event.context.user.userId, { title, description, authorization, allowedUsers })
+	const { enqueue } = useTasks()
+	await Promise.all(allowedUsers.map((email) => enqueue('send-invites', { email, room: id })))
 	return { id }
 })

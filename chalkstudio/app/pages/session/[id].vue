@@ -142,6 +142,8 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 			send(JSON.stringify({ type: 'state', user: user.value, target: event.user, data: saveBoard() }))
 			websocketStateTimeout = setTimeout(() => void loadPage(saveBoard()), wsTimeout)
 		}
+	} else if (event.type === 'name-taken') {
+		accessStatus.value = 409
 	} else if (event.type === 'leave') {
 		applyRoster(event)
 	} else if (event.type === 'state' && event.target === user.value && event.data) {

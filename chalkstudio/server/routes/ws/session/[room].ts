@@ -51,7 +51,6 @@ export default defineWebSocketHandler({
 	open(peer) {
 		try {
 			peer.context.room = getRoomName(peer)
-			peer.subscribe(peer.context.room as string)
 		} catch (_) {
 			peer.close(1008)
 		}
@@ -68,6 +67,12 @@ export default defineWebSocketHandler({
 			}
 			const members = getRoomMembers(room)
 			if (event.type === 'join') {
+				const holder = members.get(event.user as string)?.peer
+				if (holder && holder !== peer) {
+					peer.send(JSON.stringify({ type: 'name-taken', user: event.user }))
+					return
+				}
+				peer.subscribe(room)
 				const takenColors = new Set<string>()
 				peer.context.color = spriteColors[Math.floor(Math.random() * spriteColors.length)]
 				for (const user of members.values()) {
@@ -88,6 +93,7 @@ export default defineWebSocketHandler({
 					peer,
 				})
 			} else if (event.type === 'leave') {
+				if (members.get(event.user as string)?.peer !== peer) return
 				removeUser(room, event.user as string)
 			}
 			const payload = JSON.stringify({

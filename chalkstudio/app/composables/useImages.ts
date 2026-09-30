@@ -97,7 +97,8 @@ export const useImages = (options: ImageOptions) => {
 		image.onload = () => {
 			destroyPlaceholder()
 			const imageNode = new Konva.Image({
-				id: uploaded.imageId,
+				id: crypto.randomUUID(),
+				imageId: uploaded.imageId,
 				image: image,
 				x,
 				y,
@@ -253,7 +254,8 @@ export const useImages = (options: ImageOptions) => {
 		if (!layer) return
 		attachImageHandlers(imageNode)
 		const destroyPlaceholder = createPlaceholder(layer, imageNode.x(), imageNode.y(), imageNode.width(), imageNode.height())
-		const url = await getImageUrl(imageNode.id())
+		// Boards saved before content-addressed uploads used the node id as the bucket key.
+		const url = await getImageUrl(imageNode.getAttr('imageId') ?? imageNode.id())
 		if (!url) return destroyPlaceholder()
 		const image = new Image()
 		image.crossOrigin = 'anonymous'

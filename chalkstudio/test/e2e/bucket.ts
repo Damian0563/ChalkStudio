@@ -36,3 +36,15 @@ test("Bucket reports whether an image exists", async () => {
 	expect(await imageExists(objectName)).toBe(true)
 	expect(await imageExists(`boards/e2e/${crypto.randomUUID()}`)).toBe(false)
 })
+
+test("Bucket stores identical content under one name", async () => {
+	const first = await uploadImage("e2e", body, "image/png")
+	const second = await uploadImage("e2e", body, "image/png")
+	uploaded.push(first.objectName)
+	expect(second.objectName).toBe(first.objectName)
+	expect(first.imageId).toMatch(/^[0-9a-f]{64}$/)
+
+	const other = await uploadImage("e2e", Buffer.concat([body, Buffer.from([0])]), "image/png")
+	uploaded.push(other.objectName)
+	expect(other.imageId).not.toBe(first.imageId)
+})

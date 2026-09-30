@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { createHash } from 'crypto'
 import { Storage } from '@google-cloud/storage'
 const bucketName = 'chalkstudio-bucket'
 const signedUrlTtl = 1000 * 60 * 60 * 24 * 7
@@ -6,10 +6,14 @@ const signedUrlTtl = 1000 * 60 * 60 * 24 * 7
 export const useBucket = () => {
 	const storage = new Storage()
 	const uploadImage = async (room: string, body: Buffer, contentType: string): Promise<{ imageId: string, objectName: string }> => {
-		const imageId = randomUUID()
-		const file = storage.bucket(bucketName).file(`boards/${room}/${imageId}`)
-		await file.save(body, { contentType })
-		return { imageId, objectName: `boards/${room}/${imageId}` }
+		const imageId = createHash('sha256').update(body).digest('hex')
+		const objectName = `boards/${room}/${imageId}`
+		try {
+			await storage.bucket(bucketName).file(objectName).save(body, { contentType, preconditionOpts: { ifGenerationMatch: 0 } })
+		} catch (error) {
+			if ((error as { code?: number }).code !== 412) throw error
+		}
+		return { imageId, objectName }
 	}
 
 	const signImageUrl = async (objectName: string): Promise<string> => {

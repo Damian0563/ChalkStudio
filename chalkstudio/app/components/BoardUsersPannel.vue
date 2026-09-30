@@ -1,5 +1,5 @@
 <template>
-	<div class="fixed top-4 right-16 z-10 flex items-start gap-3">
+	<div class="fixed top-4 right-4 z-10 flex items-start gap-3">
 		<div v-if="!consolidateParticipantsPanel" class="flex items-start gap-3">
 			<div v-for="[id, boardUser] in visibleUsers" :key="id"
 				class="flex w-14 flex-col items-center gap-1 cursor-pointer" :title="boardUser.name"
@@ -8,7 +8,9 @@
 					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
 					<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
 				</span>
-				<span class="w-full truncate text-center text-[11px] font-semibold leading-tight text-chalk/80">
+				<span
+					class="max-w-full truncate rounded bg-board-raised/80 px-1 text-center text-[11px] font-semibold leading-tight text-chalk/80">
+
 					{{ boardUser.name }}
 				</span>
 			</div>
@@ -76,7 +78,7 @@ const emits = defineEmits<{
 const users = defineModel<Map<string, BoardUser>>('users', { required: true })
 const consolidateParticipantsPanel = computed(() => props.settings.consolidateParticipantsPanel)
 const USER_SLOT_WIDTH = 68
-const RIGHT_RESERVED = 116
+const RIGHT_RESERVED = 68
 const TOOLBAR_HALF_WIDTH = 300
 const MAX_VISIBLE_CAP = 5
 const viewportWidth = ref(0)

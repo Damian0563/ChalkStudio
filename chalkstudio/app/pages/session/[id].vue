@@ -1,6 +1,6 @@
 <template>
 	<ClientOnly>
-		<div class="relative h-screen w-screen overflow-hidden chalk-grain bg-[#1a2332]">
+		<div class="relative h-screen w-screen overflow-hidden chalk-grain" :style="{ backgroundColor: background }">
 			<Notice :message="quickNotice" />
 			<Spinner :loading="loading" />
 			<v-stage ref="stageRef" :config="stageConfig" @contextmenu="handleContextMenu" @mousedown="handleMouseDown"
@@ -9,12 +9,12 @@
 				@dbltap="handleImageDoubleClick">
 				<v-layer ref="layerRef" />
 			</v-stage>
+			<BoardDropdown v-model:settings="settings" v-model:background="background" />
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" @save-board-state="saveBoardState(boardMeta)" @add-note="positionNote($event)"
 				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" @add-image="openImagePicker" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
-			<Settings v-model:settings="settings" />
 			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom"
 				v-if="!settings.focusMode" />
 			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
@@ -67,6 +67,7 @@ type VueKonvaComponentRef = {
 	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer
 }
 
+const { background } = useBoardTheme()
 const settings = ref<BoardSettings>({
 	focusMode: false,
 	consolidateParticipantsPanel: false,

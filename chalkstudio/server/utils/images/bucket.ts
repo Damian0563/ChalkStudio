@@ -25,11 +25,19 @@ export const useBucket = () => {
 		return url
 	}
 
-	// Signing never looks at the bucket, so a missing object still gets a URL.
 	const imageExists = async (objectName: string): Promise<boolean> => {
 		const [exists] = await storage.bucket(bucketName).file(objectName).exists()
 		return exists
 	}
 
-	return { uploadImage, signImageUrl, imageExists }
+	const pruneImages = async (room: string, keep: string[]): Promise<void> => {
+		const prefix = `boards/${room}/`
+		const kept = new Set(keep)
+		const [files] = await storage.bucket(bucketName).getFiles({ prefix })
+		await Promise.all(files
+			.filter((file) => !kept.has(file.name.slice(prefix.length)))
+			.map((file) => file.delete({ ignoreNotFound: true })))
+	}
+
+	return { uploadImage, signImageUrl, imageExists, pruneImages }
 }

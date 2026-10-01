@@ -111,6 +111,11 @@ export const useDatabase = async () => {
 		}
 	}
 
+	const getBoardState = async (room: string): Promise<unknown> => {
+		const [board] = await pool.select({ data: boards.data }).from(boards).where(sql`${boards.id} = ${room}`)
+		return board?.data
+	}
+
 	const getUserEmail = async (userId: string): Promise<string | undefined> => {
 		const [user] = await pool.select({ email: users.email }).from(users).where(sql`${users.id} = ${Number(userId)}`)
 		return user?.email
@@ -180,5 +185,6 @@ export const useDatabase = async () => {
 		getRoomDetails,
 		getUserEmail,
 		getUserByMail,
+		getBoardState,
 	}
 }

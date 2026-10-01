@@ -246,7 +246,7 @@ useKeyboard({
 	settings,
 })
 const { $csrfFetch } = useNuxtApp()
-const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode, onRestoreImage: restoreImage, fetch: $csrfFetch })
+const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, mail, onRestore: restoreNode, onRestoreImage: restoreImage, fetch: $csrfFetch })
 
 
 watch(noteConfig, () => {

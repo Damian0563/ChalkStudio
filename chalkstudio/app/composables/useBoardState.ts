@@ -1,4 +1,3 @@
-import type { BoardMeta } from '#shared/types'
 import type { QuickNotice } from '~/types/general'
 import type KonvaTypes from 'konva'
 import type { Ref } from 'vue'
@@ -11,6 +10,7 @@ type useBoardStateOptions = {
 	quickNotice: Ref<QuickNotice | undefined>
 	loading: Ref<boolean>
 	room: ComputedRef<string>
+	mail?: ComputedRef<string | undefined>
 	onRestore?: (node: KonvaTypes.Node) => void
 	onRestoreImage?: (imageNode: KonvaTypes.Image) => void | Promise<void>
 	fetch: NuxtApp['$csrfFetch']
@@ -27,12 +27,12 @@ const useBoardState = (options: useBoardStateOptions) => {
 		if (boardState) applyBoardState(boardState)
 		else if (localStorage.getItem(storageKey())) applyBoardState(localStorage.getItem(storageKey()) as string)
 		else {
-			//fetch from server
 			try {
-
-			} catch {
+				const response = await options.fetch<{ board: string | null }>('/api/board/load', { query: { room: options.room.value, mail: options.mail?.value } })
+				if (response.board) await applyBoardState(response.board)
+			} catch (error) {
 				loaded.value = false
-				options.quickNotice.value = { message: 'Error loading board', type: 'error' }
+				options.quickNotice.value = { message: (error as FetchError).data?.message ?? 'Error loading board', type: 'error' }
 			}
 		}
 		options.loading.value = false

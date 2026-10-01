@@ -11,7 +11,7 @@
 			</v-stage>
 			<BoardDropdown v-model:settings="settings" v-model:background="background" />
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
-				v-model:tool="tool" @save-board-state="saveBoardState(boardMeta)" @add-note="positionNote($event)"
+				v-model:tool="tool" @save-board-state="saveBoardState(room, getImageIds())" @add-note="positionNote($event)"
 				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" @add-image="openImagePicker" />
 			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
 				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
@@ -30,7 +30,6 @@
 import type KonvaTypes from 'konva'
 import { v4 as uuidv4 } from 'uuid'
 import type { BoardEvent, Tool, BoardSettings, HistoryEvent } from '~/types/board'
-import type { BoardMeta } from '#shared/types'
 import type { QuickNotice } from '~/types/general'
 definePageMeta({
 	layout: 'blank',
@@ -52,8 +51,8 @@ const mail = computed(() => route.query.mail as string)
 
 const requestFetch = useRequestFetch()
 const { data, error } = await useAsyncData('board-meta', () => requestFetch('/api/board/init', { query: { room: room.value, mail: mail.value } }))
-const accessStatus = ref(error.value ? error.value.status ?? 500 : undefined)
 const storedUser = useLocalStorage<string | null>('chalkstudio-user', null)
+const accessStatus = ref(error.value ? error.value.status === 401 && storedUser.value ? undefined : error.value.status ?? 500 : undefined)
 const user = ref(data.value ?? storedUser.value ?? `guest-${uuidv4().slice(0, 8)}`)
 const joinAsGuest = (username: string) => {
 	user.value = username
@@ -221,7 +220,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
 	useStickyNotes({ getLayer, getStage, send, recordEvent, getUser: () => user.value, getNoteTextarea: () => noteEditorRef.value?.textarea })
 
-const { openImagePicker, restoreImage, receiveRemoteImage, isImageSelected, cancelImageSelection, handleImageDoubleClick } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send, recordEvent })
+const { openImagePicker, restoreImage, receiveRemoteImage, isImageSelected, cancelImageSelection, handleImageDoubleClick, getImageIds } = useImages({ quickNotice, room, getUser: () => user.value, getLayer, getStage, fetch: useRequestFetch(), send, recordEvent })
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
 	getStage,
@@ -246,7 +245,6 @@ useKeyboard({
 	history: { undo: () => closeEditorFor(undo()), redo: () => closeEditorFor(redo()) },
 	settings,
 })
-const boardMeta = useState<BoardMeta | undefined>('boardMeta')
 const { $csrfFetch } = useNuxtApp()
 const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, onRestore: restoreNode, onRestoreImage: restoreImage, fetch: $csrfFetch })
 

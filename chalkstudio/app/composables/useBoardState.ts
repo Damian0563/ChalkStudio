@@ -3,6 +3,7 @@ import type { QuickNotice } from '~/types/general'
 import type KonvaTypes from 'konva'
 import type { Ref } from 'vue'
 import type { NuxtApp } from '#app'
+import type { FetchError } from 'ofetch'
 
 type useBoardStateOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
@@ -73,23 +74,24 @@ const useBoardState = (options: useBoardStateOptions) => {
 		})
 		return JSON.stringify(board)
 	}
-	const saveBoardState = async (boardMetadata: BoardMeta | undefined) => {
-		if (!boardMetadata) return
+	const saveBoardState = async (room: string, imageIds: string[]) => {
 		options.loading.value = true
 		const board = autoSaveBoardState()
-		boardMetadata.data = board
 		try {
-			const response = await options.fetch<{ ok: boolean }>(`/api/boards/save/${boardMetadata.id}`, {
+			const response = await options.fetch<{ ok: boolean }>(`/api/board/save?room=${room}`, {
 				method: 'POST',
-				body: JSON.stringify(boardMetadata),
+				body: {
+					board: board,
+					imageIds
+				},
 			})
 			options.loading.value = false
 			options.quickNotice.value = response.ok
 				? { message: 'Board saved', type: 'success' }
 				: { message: 'Error saving board', type: 'error' }
-		} catch {
+		} catch (error) {
 			options.loading.value = false
-			options.quickNotice.value = { message: 'Error saving board', type: 'error' }
+			options.quickNotice.value = { message: (error as FetchError).data?.message ?? 'Error saving board', type: 'error' }
 		}
 	}
 	const autoSaveBoardState = (): string => {

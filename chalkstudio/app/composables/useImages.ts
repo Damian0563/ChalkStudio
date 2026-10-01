@@ -249,6 +249,10 @@ export const useImages = (options: ImageOptions) => {
 		}
 	}
 
+	// Boards saved before content-addressed uploads used the node id as the bucket key.
+	const getImageIds = (): string[] =>
+		[...new Set(options.getLayer()?.find<KonvaTypes.Image>('Image').map((node) => node.getAttr('imageId') ?? node.id()) ?? [])]
+
 	const restoreImage = async (imageNode: KonvaTypes.Image) => {
 		const layer = imageNode.getLayer()
 		if (!layer) return
@@ -330,5 +334,6 @@ export const useImages = (options: ImageOptions) => {
 		cancelImageSelection,
 		attachImageHandlers,
 		detachImageHandlers,
+		getImageIds,
 	}
 }

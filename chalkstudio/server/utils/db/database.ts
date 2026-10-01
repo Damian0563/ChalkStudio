@@ -163,6 +163,10 @@ export const useDatabase = async () => {
 		return created.id
 	}
 
+	const saveBoard = async (room: string, data: unknown): Promise<void> => {
+		await pool.update(boards).set({ data, modifiedAt: sql`current_date` }).where(sql`${boards.id} = ${room}`)
+	}
+
 	return {
 		initConnection,
 		createUser,
@@ -172,6 +176,7 @@ export const useDatabase = async () => {
 		insertLoginCode,
 		consumeLoginCode,
 		createBoard,
+		saveBoard,
 		getRoomDetails,
 		getUserEmail,
 		getUserByMail,

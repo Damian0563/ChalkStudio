@@ -4,11 +4,13 @@ export default defineEventHandler(async (event): Promise<Workspace> => {
 	if (!event.context.user) {
 		throw createError({ statusCode: 401, statusMessage: 'Unauthorized', message: 'Please sign in to open your workspace.' })
 	}
-
+	const { isnew } = getQuery(event)
+	const { getUserBoardsById } = await useDatabase()
+	const boards = await getUserBoardsById(event.context.user.userId)
 	return {
-		boards: [],
+		boards: boards,
 		userIdentity: event.context.user,
 		schedule: [],
-		isNew: false,
+		isNew: isnew === 'true'
 	}
 })

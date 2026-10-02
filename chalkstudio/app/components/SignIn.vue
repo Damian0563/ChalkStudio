@@ -251,7 +251,7 @@ const signUp = async () => {
 			message: 'Your account has been created. You will be redirected to the home page in a few seconds.',
 			type: 'success',
 		})
-		setTimeout(() => navigateTo('/workspace'), 1500)
+		setTimeout(() => navigateTo('/workspace?new=true'), 1500)
 	} catch (error) {
 		if ((error as FetchError).status === 403) {
 			codeError.value = 'That code is not right. Check your inbox and try again.'

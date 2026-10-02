@@ -35,13 +35,13 @@ export type BoardMeta = {
 	description: string;
 	image: string | null;
 	data: string;
-	imageSources: Record<string, string>;
 	authorization: BoardAccess;
 	allowedUsers: string[];
 }
 
 export type BoardCreationPayload = Pick<BoardMeta, "title" | "description" | "authorization" | "allowedUsers">;
 export type BoardInitDetails = Pick<BoardMeta, "allowedUsers" | "authorization" | "title" | "description">;
+export type BoardSummary = Pick<BoardMeta, "id" | "title" | "description" | "authorization"> & { modifiedAt: string };
 
 // What POST /api/images hands back. The id is what the board keeps - on the
 // Konva node as `imageId`, and as the key into `imageSources` - while the URL
@@ -59,7 +59,7 @@ export type Class = {
 }
 
 export type Workspace = {
-	boards: BoardMeta[];
+	boards: BoardSummary[];
 	userIdentity: UserIdentity;
 	schedule: Class[];
 	isNew: boolean;

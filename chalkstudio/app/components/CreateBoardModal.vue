@@ -143,24 +143,18 @@
 <script setup lang="ts">
 import { motion, AnimatePresence } from 'motion-v'
 import type { FetchError } from 'ofetch'
-import { boardDescriptionMax, boardTitleMax, emailPattern, type BoardAccess, type BoardCreationPayload } from '#shared/types'
+import { boardDescriptionMax, boardTitleMax, emailPattern, type BoardCreationPayload } from '#shared/types'
 import type { QuickNotice } from '@/types/general'
+import type { AccessOption } from '@/composables/useWorkspace'
 const boardCreation = defineModel<boolean>('boardCreation', { required: true })
 
-const props = defineProps<{ createBoard: (board: BoardCreationPayload) => Promise<string> }>()
+const props = defineProps<{ createBoard: (board: BoardCreationPayload) => Promise<string>; accessOptions: AccessOption[] }>()
 const emits = defineEmits<{ (e: 'load'): void; (e: 'message', notice: QuickNotice): void }>()
 
 const TITLE_MAX = boardTitleMax
 const DESCRIPTION_MAX = boardDescriptionMax
 const EMAIL_PATTERN = emailPattern
 const inputClass = 'w-full rounded-lg border border-chalk/10 bg-board/60 py-2.5 font-sans text-sm text-chalk placeholder:text-chalk-faint/50 transition-[border-color,box-shadow] focus:border-coral-soft/60 focus:outline-none focus:ring-2 focus:ring-coral/20 focus-visible:outline-none'
-
-const accessOptions: { value: BoardAccess; label: string; hint: string; icon: string }[] = [
-	{ value: 'public', label: 'Public', hint: 'Anyone can join, even without an account.', icon: 'lucide:globe' },
-	{ value: 'link', label: 'Anyone with the link', hint: 'Signed-in users who have the link.', icon: 'lucide:link' },
-	{ value: 'invite', label: 'Invite only', hint: 'Only the people you add by email.', icon: 'lucide:user-plus' },
-	{ value: 'private', label: 'Private', hint: 'Just you.', icon: 'lucide:lock' },
-]
 
 const emptyForm = (): BoardCreationPayload => ({
 	title: '',

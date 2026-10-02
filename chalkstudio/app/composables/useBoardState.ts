@@ -25,7 +25,6 @@ const useBoardState = (options: useBoardStateOptions) => {
 		options.loading.value = true
 		loaded.value = true
 		if (boardState) applyBoardState(boardState)
-		else if (localStorage.getItem(storageKey())) applyBoardState(localStorage.getItem(storageKey()) as string)
 		else {
 			try {
 				const response = await options.fetch<{ board: string | null }>('/api/board/load', { query: { room: options.room.value, mail: options.mail?.value } })
@@ -33,6 +32,7 @@ const useBoardState = (options: useBoardStateOptions) => {
 			} catch (error) {
 				loaded.value = false
 				options.quickNotice.value = { message: (error as FetchError).data?.message ?? 'Error loading board', type: 'error' }
+				await applyBoardState(localStorage.getItem(storageKey()) as string)
 			}
 		}
 		options.loading.value = false

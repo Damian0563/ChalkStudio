@@ -32,8 +32,8 @@
 					<div class="flex flex-col gap-2">
 						<div class="flex justify-center gap-2" role="group" aria-label="Confirmation code" @paste.prevent="onPaste">
 							<input v-for="(digit, index) in digits" :key="index" :ref="el => setInputRef(el, index)" :value="digit"
-								type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" :aria-label="`Digit ${index + 1}`"
-								:aria-invalid="!!error"
+								type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1"
+								:aria-label="`Digit ${index + 1}`" :aria-invalid="!!error"
 								class="h-12 w-11 rounded-lg border bg-board/60 text-center font-display text-lg font-semibold text-chalk transition-[border-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-coral/20 focus-visible:outline-none"
 								:class="error ? 'border-coral/60' : 'border-chalk/10 focus:border-coral-soft/60'"
 								@input="onInput($event, index)" @keydown="onKeydown($event, index)" @focus="onFocus($event)" />
@@ -51,7 +51,8 @@
 				</form>
 			</div>
 
-			<div class="border-t border-chalk/10 bg-board/40 px-6 py-4 text-center font-sans text-sm text-chalk-faint sm:px-8">
+			<div
+				class="border-t border-chalk/10 bg-board/40 px-6 py-4 text-center font-sans text-sm text-chalk-faint sm:px-8">
 				Didn't get it?
 				<button type="button" :disabled="secondsLeft > 0"
 					class="font-semibold text-coral-soft transition-colors hover:text-chalk disabled:cursor-not-allowed disabled:text-chalk-faint disabled:hover:text-chalk-faint"
@@ -94,9 +95,6 @@ const focusInput = (index: number) => {
 const digits = computed(() => Array.from({ length: props.length }, (_, index) => code.value[index] ?? ''))
 const isComplete = computed(() => code.value.length === props.length)
 
-// The boxes render `code`, so a keystroke Vue does not turn into a model change -
-// a letter, or a digit typed into a box past the end of the code - would otherwise
-// linger in the DOM node. Every mutation rewrites the nodes from the model instead.
 const syncInputs = () => inputs.value.forEach((input, index) => {
 	if (input) input.value = digits.value[index] ?? ''
 })
@@ -104,7 +102,6 @@ const syncInputs = () => inputs.value.forEach((input, index) => {
 const write = (char: string, at: number) => {
 	const next = digits.value.slice()
 	next[at] = char
-	// Blanks collapse, so the code never grows a hole the user cannot see.
 	code.value = next.join('').slice(0, props.length)
 	syncInputs()
 }
@@ -112,8 +109,6 @@ const write = (char: string, at: number) => {
 const onInput = (event: Event, index: number) => {
 	const char = (event.target as HTMLInputElement).value.replace(/\D/g, '').slice(-1)
 	if (!char) return syncInputs()
-	// A digit typed past the end of the code collapses back to the first free box,
-	// so the next box is measured from where the digit actually landed.
 	const landedAt = Math.min(index, code.value.length)
 	write(char, index)
 	focusInput(landedAt + 1)
@@ -166,8 +161,6 @@ const onResend = () => {
 	focusInput(0)
 }
 
-// A rejected code stays on screen so the user can see what they typed, but the
-// first box takes focus so retyping simply overwrites it.
 watch(() => props.error, error => error && focusInput(0))
 
 onMounted(() => {

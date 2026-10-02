@@ -1,11 +1,11 @@
 import pg from 'pg'
 import { v4 as uuid } from 'uuid'
 import { AuthTypes, Connector } from '@google-cloud/cloud-sql-connector'
-import type { UserSignUpPayload, UserIdentity, BoardCreationPayload, BoardInitDetails } from '#shared/types'
+import type { UserSignUpPayload, UserIdentity, BoardCreationPayload, BoardInitDetails, BoardSummary } from '#shared/types'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { boards, users, codes } from './schema'
 import { pushSchema } from 'drizzle-kit/api-postgres'
-import { sql } from 'drizzle-orm'
+import { desc, sql } from 'drizzle-orm'
 import { authService } from '../auth/auth'
 import type { Session } from '../auth/session'
 
@@ -111,6 +111,20 @@ export const useDatabase = async () => {
 		}
 	}
 
+	const getUserBoardsById = async (userId: string): Promise<BoardSummary[]> => {
+		const userBoards = await pool.select({ id: boards.id, title: boards.title, description: boards.description, authorization: boards.authorization, modifiedAt: boards.modifiedAt })
+			.from(boards)
+			.where(sql`${boards.ownerId} = ${Number(userId)}`)
+			.orderBy(desc(boards.modifiedAt))
+		return userBoards.map((board: any) => ({
+			id: board.id,
+			title: board.title,
+			description: board.description ?? '',
+			authorization: board.authorization,
+			modifiedAt: board.modifiedAt,
+		}))
+	}
+
 	const getBoardState = async (room: string): Promise<unknown> => {
 		const [board] = await pool.select({ data: boards.data }).from(boards).where(sql`${boards.id} = ${room}`)
 		return board?.data
@@ -186,5 +200,6 @@ export const useDatabase = async () => {
 		getUserEmail,
 		getUserByMail,
 		getBoardState,
+		getUserBoardsById,
 	}
 }

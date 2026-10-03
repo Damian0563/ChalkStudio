@@ -7,6 +7,7 @@ type useWorkspaceOptions = {
 }
 
 export type AccessOption = { value: BoardAccess; label: string; hint: string; icon: string }
+export type FormatModifiedAt = (modifiedAt: string, format: Intl.DateTimeFormatOptions) => string
 
 export function useWorkspace(options: useWorkspaceOptions) {
 	const accessOptions: AccessOption[] = [
@@ -15,6 +16,18 @@ export function useWorkspace(options: useWorkspaceOptions) {
 		{ value: 'invite', label: 'Invite only', hint: 'Only the people you add by email.', icon: 'lucide:user-plus' },
 		{ value: 'private', label: 'Private', hint: 'Just you.', icon: 'lucide:lock' },
 	]
+
+	// Only the browser knows where the viewer is, so the zone is read on mount. A
+	// server render would format in the server's zone and then flip on hydration.
+	const localTimeZone = ref<string | null>(null)
+	onMounted(() => {
+		localTimeZone.value = Intl.DateTimeFormat().resolvedOptions().timeZone
+	})
+
+	const formatModifiedAt: FormatModifiedAt = (modifiedAt, format) => {
+		if (!localTimeZone.value) return ''
+		return new Intl.DateTimeFormat(undefined, { ...format, timeZone: localTimeZone.value }).format(new Date(modifiedAt))
+	}
 
 	const initWorkspace = async (isNew: boolean) => {
 		return await options.fetch('/api/workspace/init', {
@@ -33,6 +46,7 @@ export function useWorkspace(options: useWorkspaceOptions) {
 
 	return {
 		accessOptions,
+		formatModifiedAt,
 		initWorkspace,
 		createBoard,
 	}

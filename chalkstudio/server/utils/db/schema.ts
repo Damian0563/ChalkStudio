@@ -31,7 +31,7 @@ export const boards = pgTable("boards", {
 	imageSources: json("image_sources"),
 	description: varchar("description"),
 	data: json("data"),
-	modifiedAt: date("modified_at").notNull(),
+	modifiedAt: timestamp("modified_at", { withTimezone: true }).notNull(),
 	authorization: varchar("authorization").$type<BoardAccess>().default("public"),
 	allowedUsers: json("allowed_users").$type<string[]>(),
 }, (t) => [

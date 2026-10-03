@@ -122,7 +122,7 @@ export const useDatabase = async () => {
 			description: board.description ?? '',
 			authorization: board.authorization,
 			allowedUsers: board.allowedUsers ?? [],
-			modifiedAt: board.modifiedAt,
+			modifiedAt: board.modifiedAt.toISOString(),
 		}))
 	}
 
@@ -178,13 +178,13 @@ export const useDatabase = async () => {
 			description: board.description || null,
 			authorization: board.authorization,
 			allowedUsers: board.authorization === 'invite' ? board.allowedUsers : [],
-			modifiedAt: sql`current_date`,
+			modifiedAt: sql`now()`,
 		}).returning({ id: boards.id })
 		return created.id
 	}
 
 	const saveBoard = async (room: string, data: unknown): Promise<void> => {
-		await pool.update(boards).set({ data, modifiedAt: sql`current_date` }).where(sql`${boards.id} = ${room}`)
+		await pool.update(boards).set({ data, modifiedAt: sql`now()` }).where(sql`${boards.id} = ${room}`)
 	}
 
 	return {

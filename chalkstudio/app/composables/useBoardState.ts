@@ -14,9 +14,12 @@ type useBoardStateOptions = {
 	onRestore?: (node: KonvaTypes.Node) => void
 	onRestoreImage?: (imageNode: KonvaTypes.Image) => void | Promise<void>
 	fetch: NuxtApp['$csrfFetch']
+	send: (message: string) => void
+	getUser: () => string
 }
 const useBoardState = (options: useBoardStateOptions) => {
 	const loaded = ref(false)
+	const isSaved = ref(true)
 	const storageKey = (): string => `board-${options.room.value}`
 	const wsTimeout = 3000
 	const Konva = useKonva()
@@ -77,6 +80,7 @@ const useBoardState = (options: useBoardStateOptions) => {
 	const saveBoardState = async (room: string, imageIds: string[]) => {
 		options.loading.value = true
 		const board = autoSaveBoardState()
+		isSaved.value = true
 		try {
 			const response = await options.fetch<{ ok: boolean }>(`/api/board/save?room=${room}`, {
 				method: 'POST',
@@ -86,11 +90,14 @@ const useBoardState = (options: useBoardStateOptions) => {
 				},
 			})
 			options.loading.value = false
+			if (!response.ok) isSaved.value = false
+			else if (isSaved.value) options.send(JSON.stringify({ type: 'board-saved', user: options.getUser() }))
 			options.quickNotice.value = response.ok
 				? { message: 'Board saved', type: 'success' }
 				: { message: 'Error saving board', type: 'error' }
 		} catch (error) {
 			options.loading.value = false
+			isSaved.value = false
 			options.quickNotice.value = { message: (error as FetchError).data?.message ?? 'Error saving board', type: 'error' }
 		}
 	}
@@ -101,8 +108,18 @@ const useBoardState = (options: useBoardStateOptions) => {
 		return board
 	}
 
+	const markUnsaved = () => {
+		isSaved.value = false
+	}
+	const markSaved = () => {
+		isSaved.value = true
+	}
+
 	return {
 		loaded,
+		isSaved,
+		markUnsaved,
+		markSaved,
 		loadPage,
 		saveBoard,
 		saveBoardState,

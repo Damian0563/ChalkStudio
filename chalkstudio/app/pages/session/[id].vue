@@ -9,7 +9,7 @@
 				@dbltap="handleImageDoubleClick">
 				<v-layer ref="layerRef" />
 			</v-stage>
-			<BoardDropdown v-model:settings="settings" v-model:background="background" />
+			<BoardDropdown v-model:settings="settings" v-model:background="background" :is-saved="isSaved" />
 			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
 				v-model:tool="tool" @save-board-state="saveBoardState(room, getImageIds())" @add-note="positionNote($event)"
 				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" @add-image="openImagePicker" />
@@ -186,6 +186,9 @@ const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
 	else if (event.type === 'image-placeholder' || event.type === 'image-new' || event.type === 'image-cancel' || event.type === 'image-transform' || event.type === 'image-delete') {
 		receiveRemoteImage(event)
 	}
+	else if (event.type === 'board-saved') {
+		markSaved()
+	}
 	else if (event.type === 'undo' || event.type === 'redo') {
 		closeEditorFor(receiveRemoteEvent(event))
 	}
@@ -215,6 +218,7 @@ const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
 	getStage,
 	send,
 	onRestore: restoreNode,
+	onChange: () => markUnsaved(),
 })
 
 const { isSetupStickyNote, NOTE_WIDTH, maxLength, pendingNote, isEditing, noteConfig, updateNote, cancelNoteEdit, positionNote, placeNote, cancelNotePlacement, attachStickyNoteHandlers, applyNoteEdit, isStickyNoteTarget, restoreStickyNote } =
@@ -244,9 +248,10 @@ useKeyboard({
 	zoom: { increaseZoom, decreaseZoom },
 	history: { undo: () => closeEditorFor(undo()), redo: () => closeEditorFor(redo()) },
 	settings,
+	save: () => saveBoardState(room.value, getImageIds()),
 })
 const { $csrfFetch } = useNuxtApp()
-const { loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, mail, onRestore: restoreNode, onRestoreImage: restoreImage, fetch: $csrfFetch })
+const { isSaved, markUnsaved, markSaved, loadPage, saveBoard, saveBoardState, autoSaveBoardState, wsTimeout } = useBoardState({ getStage, getLayer, quickNotice, loading, room, mail, onRestore: restoreNode, onRestoreImage: restoreImage, fetch: $csrfFetch, send, getUser: () => user.value })
 
 
 watch(noteConfig, () => {

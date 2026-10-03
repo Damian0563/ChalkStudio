@@ -153,6 +153,11 @@ resource "google_project_service" "artifactregistry" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "iamcredentials" {
+  service            = "iamcredentials.googleapis.com"
+  disable_on_destroy = false
+}
+
 data "google_project" "main" {}
 
 resource "google_artifact_registry_repository" "main" {

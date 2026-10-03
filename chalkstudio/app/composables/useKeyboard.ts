@@ -50,6 +50,7 @@ export type UseKeyboardOptions = {
 	zoom: KeyboardZoomHandlers
 	history: HistoryHandlers
 	settings: Ref<BoardSettings>
+	save: () => void
 }
 
 export function useKeyboard(options: UseKeyboardOptions) {
@@ -74,6 +75,9 @@ export function useKeyboard(options: UseKeyboardOptions) {
 		} else if (e.code === 'KeyY') {
 			e.preventDefault()
 			history.redo()
+		} else if (e.code === 'KeyS') {
+			e.preventDefault()
+			options.save()
 		}
 	}
 

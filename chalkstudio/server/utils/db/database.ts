@@ -112,7 +112,7 @@ export const useDatabase = async () => {
 	}
 
 	const getUserBoardsById = async (userId: string): Promise<BoardSummary[]> => {
-		const userBoards = await pool.select({ id: boards.id, title: boards.title, description: boards.description, authorization: boards.authorization, modifiedAt: boards.modifiedAt })
+		const userBoards = await pool.select({ id: boards.id, title: boards.title, description: boards.description, authorization: boards.authorization, allowedUsers: boards.allowedUsers, modifiedAt: boards.modifiedAt })
 			.from(boards)
 			.where(sql`${boards.ownerId} = ${Number(userId)}`)
 			.orderBy(desc(boards.modifiedAt))
@@ -121,6 +121,7 @@ export const useDatabase = async () => {
 			title: board.title,
 			description: board.description ?? '',
 			authorization: board.authorization,
+			allowedUsers: board.allowedUsers ?? [],
 			modifiedAt: board.modifiedAt,
 		}))
 	}

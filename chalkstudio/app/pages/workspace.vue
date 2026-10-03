@@ -4,7 +4,8 @@
 		<Spinner :loading="loading" />
 		<CreateBoardModal v-model:boardCreation="boardCreation" :create-board="createBoard" :access-options="accessOptions"
 			@load='loading = !loading' @message="quickNotice = $event" />
-		<BoardDetailsModal v-model:board="detailsBoard" :access-options="accessOptions" />
+		<BoardDetailsModal v-model:board="detailsBoard" :access-options="accessOptions"
+			:format-modified-at="formatModifiedAt" />
 
 		<header class="flex flex-wrap items-end justify-between gap-4">
 			<div>
@@ -61,7 +62,9 @@
 							{{ accessOf(board.authorization)?.label }}
 						</span>
 						<span>Edited
-							<NuxtTime :datetime="board.modifiedAt" month="short" day="numeric" year="numeric" />
+							<time :datetime="board.modifiedAt">
+								{{ formatModifiedAt(board.modifiedAt, { month: 'short', day: 'numeric', year: 'numeric' }) }}
+							</time>
 						</span>
 					</div>
 				</NuxtLink>
@@ -99,7 +102,7 @@ const detailsBoard: Ref<BoardSummary | null> = ref(null)
 
 const route = useRoute()
 const { $csrfFetch } = useNuxtApp()
-const { accessOptions, initWorkspace, createBoard } = useWorkspace({ fetch: useRequestFetch(), csrfFetch: $csrfFetch })
+const { accessOptions, formatModifiedAt, initWorkspace, createBoard } = useWorkspace({ fetch: useRequestFetch(), csrfFetch: $csrfFetch })
 const { data, error } = await useAsyncData('workspace', () => initWorkspace(route.query.new === 'true'))
 const accessOf = (access: BoardAccess) => accessOptions.find((option) => option.value === access)
 

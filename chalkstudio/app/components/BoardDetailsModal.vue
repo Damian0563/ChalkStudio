@@ -32,7 +32,7 @@
 							</h2>
 							<p class="mt-1 font-sans text-sm text-chalk-faint">
 								Edited
-								<NuxtTime :datetime="board.modifiedAt" month="long" day="numeric" year="numeric" />
+								<time :datetime="board.modifiedAt">{{ formatModifiedAt(board.modifiedAt, modifiedAtFormat) }}</time>
 							</p>
 						</div>
 					</div>
@@ -111,10 +111,14 @@
 <script setup lang="ts">
 import { motion, AnimatePresence } from 'motion-v'
 import type { BoardSummary } from '#shared/types'
-import type { AccessOption } from '@/composables/useWorkspace'
+import type { AccessOption, FormatModifiedAt } from '@/composables/useWorkspace'
 const board = defineModel<BoardSummary | null>('board', { required: true })
 
-const props = defineProps<{ accessOptions: AccessOption[] }>()
+const props = defineProps<{ accessOptions: AccessOption[]; formatModifiedAt: FormatModifiedAt }>()
+
+const modifiedAtFormat: Intl.DateTimeFormatOptions = {
+	month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+}
 
 const closeButton = useTemplateRef<HTMLButtonElement>('closeButton')
 const requestUrl = useRequestURL()

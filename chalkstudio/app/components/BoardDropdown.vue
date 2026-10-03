@@ -39,11 +39,12 @@
 
 			<div v-if="!showManual" class="flex flex-1 flex-col overflow-y-auto">
 				<nav class="flex flex-col gap-1 px-3 py-3" aria-label="Board menu">
-					<NuxtLink to="/"
-						class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-chalk/80 transition-colors hover:bg-chalk/[0.06] hover:text-chalk">
+					<button type="button"
+						class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-chalk/80 transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
+						@click="goHome">
 						<Icon name="lucide:house" class="h-4 w-4 shrink-0 text-chalk-faint" aria-hidden="true" />
 						Go home
-					</NuxtLink>
+					</button>
 					<button type="button"
 						class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-chalk/80 transition-colors hover:bg-chalk/[0.06] hover:text-chalk"
 						@click="showManual = true">
@@ -118,6 +119,8 @@
 			</div>
 		</motion.aside>
 	</template>
+
+	<UnsavedChangesModal :open="confirmLeave" @stay="confirmLeave = false" @leave="navigateTo('/')" />
 </template>
 
 <script setup lang="ts">
@@ -182,10 +185,18 @@ const settingToggles: { key: keyof BoardSettings; label: string }[] = [
 
 const settings = defineModel<BoardSettings>('settings', { required: true })
 const background = defineModel<string>('background', { required: true })
+const props = defineProps<{ isSaved: boolean }>()
 const open = ref(false)
 const showManual = ref(false)
+const confirmLeave = ref(false)
+const goHome = () => {
+	if (props.isSaved) navigateTo('/')
+	else confirmLeave.value = true
+}
 const onKeydown = (event: KeyboardEvent) => {
-	if (event.key === 'Escape') open.value = false
+	if (event.key !== 'Escape') return
+	if (confirmLeave.value) confirmLeave.value = false
+	else open.value = false
 }
 
 watch(open, (isOpen) => {

@@ -13,6 +13,7 @@ type UseHistoryOptions = {
 	getStage: () => KonvaTypes.Stage | undefined
 	send: (message: string) => void
 	onRestore?: (node: KonvaTypes.Node) => void
+	onChange?: () => void
 }
 type HistoryStep = {
 	type: 'undo' | 'redo'
@@ -42,6 +43,7 @@ const useHistory = (options: UseHistoryOptions) => {
 		history.push(entry)
 		redoBuffer.length = 0
 		if (history.length > MAX_HISTORY) history.shift()
+		options.onChange?.()
 	}
 
 	const recordEvent = (event: BoardEvent, before?: object | null) => {
@@ -63,6 +65,7 @@ const useHistory = (options: UseHistoryOptions) => {
 			if (isTextEdit && open?.stub && open.id === id) {
 				open.after = event.data
 				redoBuffer.length = 0
+				options.onChange?.()
 				return
 			}
 			push({ id, before: before ?? null, after: event.data, stub: isTextEdit })
@@ -93,6 +96,7 @@ const useHistory = (options: UseHistoryOptions) => {
 		step.target.push(last)
 		if (step.target.length > MAX_HISTORY) step.target.shift()
 		restore(layer, last.id, step.stateOf(last))
+		options.onChange?.()
 		if (!predicate) {
 			step.source.pop()
 			options.send(JSON.stringify({ type: step.type, id: last.id, before: last.before, after: last.after, stub: last.stub }))

@@ -249,7 +249,6 @@ export const useImages = (options: ImageOptions) => {
 		}
 	}
 
-	// Boards saved before content-addressed uploads used the node id as the bucket key.
 	const getImageIds = (): string[] =>
 		[...new Set(options.getLayer()?.find<KonvaTypes.Image>('Image').map((node) => node.getAttr('imageId') ?? node.id()) ?? [])]
 
@@ -258,7 +257,6 @@ export const useImages = (options: ImageOptions) => {
 		if (!layer) return
 		attachImageHandlers(imageNode)
 		const destroyPlaceholder = createPlaceholder(layer, imageNode.x(), imageNode.y(), imageNode.width(), imageNode.height())
-		// Boards saved before content-addressed uploads used the node id as the bucket key.
 		const url = await getImageUrl(imageNode.getAttr('imageId') ?? imageNode.id())
 		if (!url) return destroyPlaceholder()
 		const image = new Image()
@@ -317,12 +315,30 @@ export const useImages = (options: ImageOptions) => {
 		}
 	}
 
+
+	const { copy: copyToClipboard } = useClipboardItems()
+
+	const copyImage = (e: ClipboardEvent) => {
+		e.preventDefault()
+		const image = selectedImage.value?.image() as HTMLImageElement | undefined
+		if (!image) return
+		const canvas = new OffscreenCanvas(image.naturalWidth, image.naturalHeight)
+		canvas.getContext('2d')?.drawImage(image, 0, 0)
+		copyToClipboard([new ClipboardItem({ 'image/png': canvas.convertToBlob({ type: 'image/png' }) })]).catch(() => {
+			quickNotice.value = { message: 'Error copying image', type: 'error' }
+			return
+		})
+		quickNotice.value = { message: 'Image copied to clipboard', type: 'success' }
+	}
+
 	onMounted(() => {
 		window.addEventListener('paste', createImage)
+		window.addEventListener('copy', copyImage)
 	})
 
 	onUnmounted(() => {
 		window.removeEventListener('paste', createImage)
+		window.removeEventListener('copy', copyImage)
 	})
 
 	return {

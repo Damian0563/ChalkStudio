@@ -35,12 +35,12 @@ export default defineEventHandler(async (event) => {
 	}
 	if (!profile?.email || !profile.email_verified) throw googleFailed()
 
-	const { loginWithGoogle } = await useDatabase()
-	const { isNew, ...session } = await loginWithGoogle({
+	const { loginWithOAuth } = await useDatabase()
+	const { isNew, ...session } = await loginWithOAuth({
 		name: profile.name ?? profile.given_name ?? profile.email.split('@')[0]!,
 		email: profile.email,
 		role,
 	})
 	startSession(event, session)
-	return { isNew }
+	return sendRedirect(event, isNew ? '/workspace?new=true' : '/workspace')
 })

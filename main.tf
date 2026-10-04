@@ -39,9 +39,40 @@ variable "jwt_secret" {
   sensitive   = true
 }
 
+variable "enable_cloud_sql" {
+  type        = bool
+  default     = false
+  description = "Create the Cloud SQL instance, database and user. Off during local development, which uses docker-compose Postgres."
+}
+
+variable "google_client_id" {
+  type        = string
+  description = "GOOGLE_CLIENT_ID: OAuth client ID for Google sign-in."
+}
+
+variable "google_auth_secret" {
+  type        = string
+  description = "GOOGLE_AUTH_SECRET: OAuth client secret for Google sign-in."
+  sensitive   = true
+}
+
+variable "github_client_id" {
+  type        = string
+  description = "GITHUB_CLIENT_ID: OAuth client ID for GitHub sign-in."
+}
+
+variable "github_auth_secret" {
+  type        = string
+  description = "GITHUB_AUTH_SECRET: OAuth client secret for GitHub sign-in."
+  sensitive   = true
+}
+
 locals {
   service_name = "chalkstudio"
-  service_url  = "https://${local.service_name}-${data.google_project.main.number}.${var.region}.run.app"
+  # Derived rather than read from the instance so PG_CONNECTION_NAME stays stable while Cloud SQL is disabled.
+  sql_instance_name  = "main"
+  pg_connection_name = "${var.project}:${var.region}:${local.sql_instance_name}"
+  service_url        = "https://${local.service_name}-${data.google_project.main.number}.${var.region}.run.app"
 }
 
 locals {
@@ -49,21 +80,25 @@ locals {
   # under its own name. PG_HOST / PG_PORT are deliberately absent: they exist only
   # to point local development at docker-compose, and setting them in the deployed
   # environment would bypass the Cloud SQL connector.
-  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL", "GOOGLE_AUTH_SECRET"]
+  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL", "GOOGLE_CLIENT_ID", "GOOGLE_AUTH_SECRET", "GITHUB_AUTH_SECRET", "GITHUB_CLIENT_ID"]
 
   secret_values = {
     JWT_SECRET         = var.jwt_secret
     PG_USER            = var.pg_user
     PG_PASS            = var.pg_pass
     PG_NAME            = var.pg_name
-    PG_CONNECTION_NAME = google_sql_database_instance.main.connection_name
+    PG_CONNECTION_NAME = local.pg_connection_name
     URL                = local.service_url
     GOOGLE_AUTH_SECRET = var.google_auth_secret
+    GOOGLE_CLIENT_ID   = var.google_client_id
+    GITHUB_AUTH_SECRET = var.github_auth_secret
+    GITHUB_CLIENT_ID   = var.github_client_id
   }
 }
 
 resource "google_sql_database_instance" "main" {
-  name                = "main"
+  count               = var.enable_cloud_sql ? 1 : 0
+  name                = local.sql_instance_name
   database_version    = "POSTGRES_18"
   region              = var.region
   deletion_protection = true
@@ -100,13 +135,15 @@ resource "google_sql_database_instance" "main" {
 }
 
 resource "google_sql_database" "main" {
+  count    = var.enable_cloud_sql ? 1 : 0
   name     = var.pg_name
-  instance = google_sql_database_instance.main.name
+  instance = google_sql_database_instance.main[0].name
 }
 
 resource "google_sql_user" "main" {
+  count    = var.enable_cloud_sql ? 1 : 0
   name     = var.pg_user
-  instance = google_sql_database_instance.main.name
+  instance = google_sql_database_instance.main[0].name
   password = var.pg_pass
 }
 
@@ -178,7 +215,6 @@ resource "google_service_account" "tasks_invoker" {
   display_name = "Chalk Studio task dispatcher"
 }
 
-# One queue per mail task, named after the `queue` of its runner in server/utils/tasks/tasks.ts.
 resource "google_cloud_tasks_queue" "email" {
   for_each = toset(["email-confirmation", "email-board-invitation"])
   name     = each.key
@@ -219,54 +255,9 @@ resource "google_cloud_tasks_queue" "reviews" {
   depends_on = [google_project_service.cloudtasks]
 }
 
-
-
-# Commented out until an image exists at the artifact repository; re-enable and apply once it is pushed.
-# resource "google_cloud_run_v2_service" "app" {
-#   name                = local.service_name
-#   location            = var.region
-#   deletion_protection = false
-#   ingress             = "INGRESS_TRAFFIC_ALL"
-#
-#   template {
-#     service_account                  = google_service_account.app.email
-#     max_instance_request_concurrency = 80
-#
-#     scaling {
-#       min_instance_count = 0
-#       max_instance_count = 4
-#     }
-#
-#     containers {
-#       image = "${var.region}-docker.pkg.dev/${var.project}/${google_artifact_registry_repository.main.repository_id}/${local.service_name}:latest"
-#       ports {
-#         container_port = 3000
-#       }
-#       env {
-#         name  = "SERVICE_URL"
-#         value = local.service_url
-#       }
-#       env {
-#         name  = "TASKS_LOCATION"
-#         value = var.region
-#       }
-#       env {
-#         name  = "TASKS_INVOKER_SA"
-#         value = google_service_account.tasks_invoker.email
-#       }
-#     }
-#   }
-#
-#   lifecycle {
-#     ignore_changes = [template[0].containers[0].image, client, client_version]
-#   }
-#
-#   depends_on = [google_project_service.run]
-# }
-
 output "pg_connection_name" {
   description = "Value for PG_CONNECTION_NAME in the app environment."
-  value       = google_sql_database_instance.main.connection_name
+  value       = local.pg_connection_name
 }
 
 output "secret_ids" {

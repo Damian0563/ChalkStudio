@@ -29,9 +29,9 @@
 
 				<div class="grid grid-cols-3 gap-2.5">
 					<button v-for="provider in providers" :key="provider.name" type="button"
-						class="flex items-center justify-center gap-2 rounded-lg border border-chalk/10 bg-board/60 px-3 font-sans text-sm font-semibold text-chalk/90 transition-colors hover:border-chalk/25 hover:bg-chalk/[0.06] hover:text-chalk"
-						:class="isSignIn ? 'py-2.5' : 'py-2'"
-						:aria-label="`${isSignIn ? 'Sign in' : 'Sign up'} with ${provider.name}`">
+						class="flex items-center justify-center gap-2 rounded-lg border border-chalk/10 bg-board/60 px-3 font-sans text-sm font-semibold text-chalk/90 transition-colors hover:border-chalk/25 hover:bg-chalk/[0.06] hover:text-chalk disabled:cursor-wait disabled:opacity-60 disabled:hover:border-chalk/10 disabled:hover:bg-board/60"
+						:class="isSignIn ? 'py-2.5' : 'py-2'" :disabled="provider.disabled?.value"
+						:aria-label="`${isSignIn ? 'Sign in' : 'Sign up'} with ${provider.name}`" @click="provider.login?.()">
 						<Icon :name="provider.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
 						{{ provider.name }}
 					</button>
@@ -131,7 +131,7 @@
 import { motion } from 'motion-v'
 import type { FetchError } from 'ofetch'
 import type { QuickNotice } from '@/types/general'
-import type { RegistrationRole } from '#shared/types'
+import type { GoogleAuthPayload, RegistrationRole } from '#shared/types'
 const mode = defineModel<'signIn' | 'signUp'>('mode', { required: true })
 
 const emit = defineEmits<{
@@ -143,8 +143,13 @@ const emit = defineEmits<{
 const inputClass = computed(() =>
 	`w-full rounded-lg border border-chalk/10 bg-board/60 ${isSignIn.value ? 'py-2.5' : 'py-2'} pl-10 font-sans text-sm text-chalk placeholder:text-chalk-faint/50 transition-[border-color,box-shadow] focus:border-coral-soft/60 focus:outline-none focus:ring-2 focus:ring-coral/20 focus-visible:outline-none`)
 
-const providers = [
-	{ name: 'Google', icon: 'simple-icons:google' },
+const { isReady: isGoogleReady, login: googleLogin } = useCodeClient({
+	onSuccess: ({ code }) => signInWithGoogle(code),
+	onError: () => emit('message', { message: 'Google sign-in failed. Please try again.', type: 'error' }),
+})
+
+const providers: { name: string; icon: string; login?: () => void; disabled?: Ref<boolean> }[] = [
+	{ name: 'Google', icon: 'logos:google-icon', login: googleLogin, disabled: computed(() => !isGoogleReady.value) },
 	{ name: 'GitHub', icon: 'simple-icons:github' },
 	{ name: 'X', icon: 'simple-icons:x' },
 ]
@@ -203,6 +208,24 @@ const signIn = async () => {
 	} catch (error) {
 		emit('message', {
 			message: (error as FetchError).data?.message ?? 'An error occured while signing in. Please try again later.',
+			type: 'error',
+		})
+	} finally {
+		emit('load')
+	}
+}
+
+const signInWithGoogle = async (code: string) => {
+	emit('load')
+	try {
+		const { isNew } = await $csrfFetch<{ isNew: boolean }>('/api/auth/google', {
+			method: 'POST',
+			body: { code, role: form.role } satisfies GoogleAuthPayload
+		})
+		await navigateTo(isNew ? '/workspace?new=true' : '/workspace')
+	} catch (error) {
+		emit('message', {
+			message: (error as FetchError).data?.message ?? 'An error occured while signing in with Google. Please try again later.',
 			type: 'error',
 		})
 	} finally {

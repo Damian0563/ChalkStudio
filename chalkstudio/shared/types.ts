@@ -21,6 +21,11 @@ export type UserSignUpPayload = {
 	code: string;
 }
 
+export type GoogleAuthPayload = {
+	code: string;
+	role: RegistrationRole;
+}
+
 
 export const boardAccessModes = ["public", "link", "invite", "private"] as const
 export type BoardAccess = typeof boardAccessModes[number]

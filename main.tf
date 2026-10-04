@@ -49,7 +49,7 @@ locals {
   # under its own name. PG_HOST / PG_PORT are deliberately absent: they exist only
   # to point local development at docker-compose, and setting them in the deployed
   # environment would bypass the Cloud SQL connector.
-  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL"]
+  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL", "GOOGLE_AUTH_SECRET"]
 
   secret_values = {
     JWT_SECRET         = var.jwt_secret
@@ -58,6 +58,7 @@ locals {
     PG_NAME            = var.pg_name
     PG_CONNECTION_NAME = google_sql_database_instance.main.connection_name
     URL                = local.service_url
+    GOOGLE_AUTH_SECRET = var.google_auth_secret
   }
 }
 
@@ -226,16 +227,16 @@ resource "google_cloud_tasks_queue" "reviews" {
 #   location            = var.region
 #   deletion_protection = false
 #   ingress             = "INGRESS_TRAFFIC_ALL"
-# 
+#
 #   template {
 #     service_account                  = google_service_account.app.email
 #     max_instance_request_concurrency = 80
-# 
+#
 #     scaling {
 #       min_instance_count = 0
 #       max_instance_count = 4
 #     }
-# 
+#
 #     containers {
 #       image = "${var.region}-docker.pkg.dev/${var.project}/${google_artifact_registry_repository.main.repository_id}/${local.service_name}:latest"
 #       ports {
@@ -255,11 +256,11 @@ resource "google_cloud_tasks_queue" "reviews" {
 #       }
 #     }
 #   }
-# 
+#
 #   lifecycle {
 #     ignore_changes = [template[0].containers[0].image, client, client_version]
 #   }
-# 
+#
 #   depends_on = [google_project_service.run]
 # }
 

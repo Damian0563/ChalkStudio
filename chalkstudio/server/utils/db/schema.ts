@@ -6,7 +6,8 @@ export const users = pgTable("users", {
 	name: varchar("name").notNull(),
 	role: varchar("role").notNull(),
 	email: varchar("email").notNull().unique(),
-	password: varchar("password").notNull(),
+	// Null for accounts created through Google sign-in, which never set a password.
+	password: varchar("password"),
 	createdAt: date("created_at").notNull(),
 	refreshToken: varchar("refresh_token"),
 }, (t) => [

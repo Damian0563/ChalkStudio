@@ -17,8 +17,6 @@ export function useWorkspace(options: useWorkspaceOptions) {
 		{ value: 'private', label: 'Private', hint: 'Just you.', icon: 'lucide:lock' },
 	]
 
-	// Only the browser knows where the viewer is, so the zone is read on mount. A
-	// server render would format in the server's zone and then flip on hydration.
 	const localTimeZone = ref<string | null>(null)
 	onMounted(() => {
 		localTimeZone.value = Intl.DateTimeFormat().resolvedOptions().timeZone

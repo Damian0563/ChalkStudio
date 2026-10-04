@@ -1,7 +1,7 @@
 import { AuthService } from '#server/utils/auth/auth'
 import { accessCookieName, cookieBase, endSession, refreshCookieName, startSession } from '#server/utils/auth/session'
 
-const harmlessPaths = ['/api/login', '/api/logout', '/']
+const harmlessPaths = ['/api/auth/login', '/api/auth/logout', '/']
 
 export default defineEventHandler(async (event) => {
 	if (harmlessPaths.includes(event.path)) return

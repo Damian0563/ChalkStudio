@@ -95,7 +95,7 @@ export const useDatabase = async () => {
 		return { identity: toIdentity(user), refreshToken }
 	}
 
-	const loginWithGoogle = async (user: { name: string, email: string, role: RegistrationRole }): Promise<Session & { isNew: boolean }> => {
+	const loginWithOAuth = async (user: { name: string, email: string, role: RegistrationRole }): Promise<Session & { isNew: boolean }> => {
 		const email = user.email.trim().toLowerCase()
 		const findUser = () => pool.select({ id: users.id, name: users.name, role: users.role, refreshToken: users.refreshToken })
 			.from(users).where(sql`${users.email} = ${email}`)
@@ -215,7 +215,7 @@ export const useDatabase = async () => {
 		initConnection,
 		createUser,
 		login,
-		loginWithGoogle,
+		loginWithOAuth,
 		findByRefreshToken,
 		checkUserExists,
 		insertLoginCode,

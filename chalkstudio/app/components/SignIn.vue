@@ -150,7 +150,7 @@ const { isReady: isGoogleReady, login: googleLogin } = useCodeClient({
 
 const providers: { name: string; icon: string; login?: () => void; disabled?: Ref<boolean> }[] = [
 	{ name: 'Google', icon: 'logos:google-icon', login: googleLogin, disabled: computed(() => !isGoogleReady.value) },
-	{ name: 'GitHub', icon: 'simple-icons:github' },
+	{ name: 'GitHub', icon: 'simple-icons:github', login: () => signInWithGithubRequest() },
 	{ name: 'X', icon: 'simple-icons:x' },
 ]
 
@@ -215,14 +215,25 @@ const signIn = async () => {
 	}
 }
 
+const signInWithGithubRequest = async () => {
+	try {
+		window.location.href = await $csrfFetch<{ url: string }>('/api/auth/github', { query: { role: form.role } }).then(res => res.url)
+	} catch (error) {
+		emit('message', {
+			message: (error as FetchError).data?.message ?? 'An error occured while signing in with Github. Please try again later.',
+			type: 'error',
+		})
+	}
+}
+
+
 const signInWithGoogle = async (code: string) => {
 	emit('load')
 	try {
-		const { isNew } = await $csrfFetch<{ isNew: boolean }>('/api/auth/google', {
+		await $csrfFetch<{ isNew: boolean }>('/api/auth/google', {
 			method: 'POST',
 			body: { code, role: form.role } satisfies GoogleAuthPayload
 		})
-		await navigateTo(isNew ? '/workspace?new=true' : '/workspace')
 	} catch (error) {
 		emit('message', {
 			message: (error as FetchError).data?.message ?? 'An error occured while signing in with Google. Please try again later.',

@@ -10,4 +10,5 @@ test("Secret Manager", async () => {
 	expect(process.env.PG_PASS).toBeDefined()
 	expect(process.env.PG_NAME).toBeDefined()
 	expect(process.env.PG_CONNECTION_NAME).toBeDefined()
+	expect(process.env.GOOGLE_AUTH_SECRET).toBeDefined()
 })

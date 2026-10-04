@@ -1,11 +1,9 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 // Mirrors local.secret_names in main.tf: each secret Terraform provisions is stored
 // under the exact name of the environment variable the app reads it from.
-const secretNames = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL"] as const
+const secretNames = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL", "GOOGLE_AUTH_SECRET"]
 
 export const useSecrets = () => {
-	// A PG_HOST points the app at a local Postgres (docker-compose), so the Cloud SQL
-	// connector - and the instance name it needs - never comes into play.
 	const isNeeded = (name: string): boolean => name !== "PG_CONNECTION_NAME" || !process.env.PG_HOST
 
 	const readSecret = async (client: SecretManagerServiceClient, project: string, name: string): Promise<string> => {
@@ -22,8 +20,6 @@ export const useSecrets = () => {
 		}
 	}
 
-	// Anything already in the environment wins, so a local .env keeps Secret Manager -
-	// and the credentials it would need - out of the development loop entirely.
 	const resolveSecrets = async (): Promise<void> => {
 		const missing = secretNames.filter((name) => !process.env[name] && isNeeded(name))
 		if (!missing.length) return

@@ -1,22 +1,42 @@
 import type { NitroRouteConfig } from 'nitropack'
 
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
 	compatibilityDate: '2025-07-15',
 	devtools: { enabled: true },
 	devServer: {
 		port: 3000,
 	},
-	modules: ['@nuxtjs/tailwindcss', 'motion-v/nuxt', '@nuxt/icon', '@vueuse/nuxt', '@nuxt/test-utils/module', 'nuxt-csurf'],
+	modules: [
+		'@nuxtjs/tailwindcss',
+		'motion-v/nuxt',
+		'@nuxt/icon',
+		'@nuxt/fonts',
+		'@vueuse/nuxt',
+		'@nuxt/test-utils/module',
+		'nuxt-csurf',
+		'nuxt-vue3-google-signin',
+	],
+	googleSignIn: {
+		clientId: process.env.GOOGLE_CLIENT_ID,
+	},
+	fonts: {
+		families: [
+			{ name: 'Caveat', provider: 'google', weights: [400, 500, 600, 700], styles: ['normal'], global: true },
+			{
+				name: 'Fraunces',
+				provider: 'google',
+				weights: [300, 400, 500, 600, 700, 800],
+				styles: ['normal'],
+				global: true,
+				providerOptions: { google: { experimental: { variableAxis: { opsz: [['9', '144']] } } } },
+			},
+			{ name: 'Source Sans 3', provider: 'google', weights: [300, 400, 500, 600, 700, 800], styles: ['normal'], global: true },
+		],
+	},
 	csurf: {
 		methodsToProtect: ['POST', 'PUT', 'PATCH', 'DELETE'],
 	},
 	routeRules: {
-		// Cloud Tasks dispatches carry no CSRF cookie and cannot be given one. They are
-		// authenticated instead by the OIDC token assertTaskRequest checks, which is a
-		// stronger guarantee than the token this rule waives. The assertion is nuxt-csurf's
-		// doing: it declares this option on `nitropack`, but nitropack v2 re-exports
-		// NitroRouteConfig from an internal chunk, so the augmentation never merges.
 		'/api/tasks/**': { csurf: false } as NitroRouteConfig,
 	},
 	nitro: {
@@ -51,12 +71,6 @@ export default defineNuxtConfig({
 			charset: 'utf-8',
 			viewport: 'width=device-width, initial-scale=1',
 			link: [
-				{ rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-				{ rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-				{
-					rel: 'stylesheet',
-					href: 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Source+Sans+3:wght@300;400;500;600;700;800&display=swap',
-				},
 				{
 					rel: 'icon',
 					type: 'image/x-icon',

@@ -1,7 +1,7 @@
 import pg from 'pg'
 import { v4 as uuid } from 'uuid'
 import { AuthTypes, Connector } from '@google-cloud/cloud-sql-connector'
-import type { UserSignUpPayload, UserIdentity, BoardCreationPayload, BoardInitDetails, BoardSummary } from '#shared/types'
+import type { UserSignUpPayload, UserIdentity, BoardCreationPayload, BoardInitDetails, BoardSummary, RegistrationRole } from '#shared/types'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { boards, users, codes } from './schema'
 import { pushSchema } from 'drizzle-kit/api-postgres'
@@ -82,13 +82,37 @@ export const useDatabase = async () => {
 	const login = async (email: string, assertedPassword: string): Promise<Session | undefined> => {
 		const [user] = await pool.select({ id: users.id, name: users.name, role: users.role, password: users.password, refreshToken: users.refreshToken })
 			.from(users).where(sql`${users.email} = ${email.trim().toLowerCase()}`)
-		if (!user) return
+		if (!user?.password) return
 		if (!await authService.comparePassword(user.password, assertedPassword)) return
+		return sessionFor(user)
+	}
+
+	const sessionFor = async (user: { id: number, name: string, role: string, refreshToken: string | null }): Promise<Session> => {
 		const refreshToken = user.refreshToken ?? String(uuid())
 		if (!user.refreshToken) {
 			await pool.update(users).set({ refreshToken }).where(sql`${users.id} = ${user.id}`)
 		}
 		return { identity: toIdentity(user), refreshToken }
+	}
+
+	const loginWithGoogle = async (user: { name: string, email: string, role: RegistrationRole }): Promise<Session & { isNew: boolean }> => {
+		const email = user.email.trim().toLowerCase()
+		const findUser = () => pool.select({ id: users.id, name: users.name, role: users.role, refreshToken: users.refreshToken })
+			.from(users).where(sql`${users.email} = ${email}`)
+		let [existing] = await findUser()
+		if (!existing) {
+			const refreshToken = String(uuid())
+			const [created] = await pool.insert(users).values({
+				name: user.name.trim(),
+				email,
+				role: user.role,
+				createdAt: sql`current_date`,
+				refreshToken,
+			}).onConflictDoNothing({ target: users.email }).returning({ id: users.id, name: users.name, role: users.role })
+			if (created) return { identity: toIdentity(created), refreshToken, isNew: true }
+			existing = (await findUser())[0]
+		}
+		return { ...await sessionFor(existing), isNew: false }
 	}
 
 	const findByRefreshToken = async (refreshToken: string): Promise<Session | undefined> => {
@@ -191,6 +215,7 @@ export const useDatabase = async () => {
 		initConnection,
 		createUser,
 		login,
+		loginWithGoogle,
 		findByRefreshToken,
 		checkUserExists,
 		insertLoginCode,

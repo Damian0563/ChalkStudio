@@ -230,10 +230,11 @@ const signInWithGithubRequest = async () => {
 const signInWithGoogle = async (code: string) => {
 	emit('load')
 	try {
-		await $csrfFetch<{ isNew: boolean }>('/api/auth/google', {
+		const { isNew } = await $csrfFetch<{ isNew: boolean }>('/api/auth/google', {
 			method: 'POST',
 			body: { code, role: form.role } satisfies GoogleAuthPayload
 		})
+		await navigateTo(isNew ? '/workspace?new=true' : '/workspace')
 	} catch (error) {
 		emit('message', {
 			message: (error as FetchError).data?.message ?? 'An error occured while signing in with Google. Please try again later.',

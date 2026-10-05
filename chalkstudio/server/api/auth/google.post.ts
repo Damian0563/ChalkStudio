@@ -42,5 +42,5 @@ export default defineEventHandler(async (event) => {
 		role,
 	})
 	startSession(event, session)
-	return sendRedirect(event, isNew ? '/workspace?new=true' : '/workspace')
+	return { isNew }
 })

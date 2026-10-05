@@ -1,14 +1,14 @@
 <template>
 	<div class="flex min-h-screen">
-		<MainNavbar />
+		<MainNavbar :user="data?.userIdentity" />
 		<div class="mx-auto flex min-w-0 flex-1 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-10">
 			<Notice :message="quickNotice" />
 			<Spinner :loading="loading" />
-			<CreateBoardModal v-model:boardCreation="boardCreation" :create-board="createBoard" :access-options="accessOptions"
-				@load='loading = !loading' @message="quickNotice = $event" />
+			<CreateBoardModal v-model:boardCreation="boardCreation" :create-board="createBoard"
+				:access-options="accessOptions" @load='loading = !loading' @message="quickNotice = $event" />
 			<BoardDetailsModal v-model:board="detailsBoard" :access-options="accessOptions"
 				:format-modified-at="formatModifiedAt" />
-	
+
 			<header class="flex flex-wrap items-end justify-between gap-4">
 				<div>
 					<h1 class="font-display text-2xl font-semibold tracking-tight text-chalk sm:text-3xl">
@@ -36,7 +36,7 @@
 					</button>
 				</div>
 			</header>
-	
+
 			<ul v-if="data?.boards.length" id="workspace-boards" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 				<li v-for="board in visibleBoards" :key="board.id" class="relative">
 					<NuxtLink :to="`/session/${board.id}`"
@@ -77,7 +77,7 @@
 					</button>
 				</li>
 			</ul>
-	
+
 			<div v-else-if="data"
 				class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-chalk/15 px-6 py-16 text-center">
 				<Icon name="lucide:presentation" class="h-8 w-8 text-chalk-faint/60" aria-hidden="true" />

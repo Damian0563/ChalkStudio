@@ -63,6 +63,11 @@ export const useDatabase = async () => {
 		role: row.role as UserIdentity['role'],
 	})
 
+	const invalidateRefreshToken = async (userId: string | undefined) => {
+		if (!userId) return
+		await pool.update(users).set({ refreshToken: null }).where(sql`${users.id} = ${userId}`)
+	}
+
 	const createUser = async (user: Omit<UserSignUpPayload, 'code'>): Promise<Session | undefined> => {
 		const { name, email, password, role } = user
 		const normalizedEmail = email.trim().toLowerCase()
@@ -227,5 +232,6 @@ export const useDatabase = async () => {
 		getUserByMail,
 		getBoardState,
 		getUserBoardsById,
+		invalidateRefreshToken,
 	}
 }

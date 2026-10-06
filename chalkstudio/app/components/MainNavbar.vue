@@ -1,4 +1,6 @@
 <template>
+	<ProfileSettings v-if="user" v-model:show="showProfileDetails" :user="user" :role-label="roleLabels[user.role]"
+		@sign-out="callSignOut" />
 	<aside
 		class="sticky top-0 flex shrink-0 flex-col bg-board h-screen overflow-hidden shadow-md border-r border-chalk/10 transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
 		:class="collapsed ? 'w-16' : 'w-64'">
@@ -17,7 +19,7 @@
 			</button>
 		</div>
 		<div class="flex-1" />
-		<div v-if="user" class="border-t border-chalk/10 p-2">
+		<div v-if="user" class="border-t border-chalk/10 p-2" @click="showProfileDetails = true">
 			<button type="button"
 				class="group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-chalk/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-coral/30"
 				:title="collapsed ? user.username : undefined">
@@ -45,9 +47,13 @@
 
 <script setup lang="ts">
 import type { UserIdentity } from '~~/shared/types';
+import type { QuickNotice } from '@/types/general';
 const props = defineProps<{
 	user: UserIdentity | undefined
+	signOut: () => Promise<void>
 }>()
+const emit = defineEmits<{ (e: 'load'): void, (e: 'message', message: QuickNotice): void }>()
+const showProfileDetails: Ref<boolean> = ref(false)
 
 const roleLabels: Record<UserIdentity['role'], string> = {
 	'student': 'Student',
@@ -64,4 +70,16 @@ const collapsed = useCookie<boolean>('sidebar-collapsed', {
 })
 
 const initial = computed(() => props.user?.username.trim().charAt(0).toUpperCase() ?? '')
+
+
+const callSignOut = async () => {
+	emit('load')
+	try {
+		await props.signOut()
+	} catch {
+		emit('message', { message: 'Error occured while signing out', type: 'error' })
+	} finally {
+		emit('load')
+	}
+}
 </script>

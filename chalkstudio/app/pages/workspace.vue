@@ -1,6 +1,7 @@
 <template>
 	<div class="flex min-h-screen">
-		<MainNavbar :user="data?.userIdentity" />
+		<MainNavbar :user="data?.userIdentity" :sign-out="signOut" @load='loading = !loading'
+			@message="quickNotice = $event" />
 		<div class="mx-auto flex min-w-0 flex-1 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-10">
 			<Notice :message="quickNotice" />
 			<Spinner :loading="loading" />
@@ -105,7 +106,7 @@ const detailsBoard: Ref<BoardSummary | null> = ref(null)
 
 const route = useRoute()
 const { $csrfFetch } = useNuxtApp()
-const { accessOptions, formatModifiedAt, initWorkspace, createBoard } = useWorkspace({ fetch: useRequestFetch(), csrfFetch: $csrfFetch })
+const { accessOptions, formatModifiedAt, initWorkspace, createBoard, signOut } = useWorkspace({ fetch: useRequestFetch(), csrfFetch: $csrfFetch })
 const { data, error } = await useAsyncData('workspace', () => initWorkspace(route.query.new === 'true'))
 const accessOf = (access: BoardAccess) => accessOptions.find((option) => option.value === access)
 

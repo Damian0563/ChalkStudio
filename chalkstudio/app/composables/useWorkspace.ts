@@ -42,11 +42,19 @@ export function useWorkspace(options: useWorkspaceOptions) {
 		return id
 	}
 
+	const signOut = async () => {
+		await options.csrfFetch('/api/auth/signout', {
+			method: 'POST',
+		})
+		await navigateTo('/')
+	}
+
 	return {
 		accessOptions,
 		formatModifiedAt,
 		initWorkspace,
 		createBoard,
+		signOut,
 	}
 
 }

@@ -67,6 +67,17 @@ variable "github_auth_secret" {
   sensitive   = true
 }
 
+variable "azure_client_id" {
+  type        = string
+  description = "AZURE_CLIENT_ID: OAuth client ID for Azure sign-in."
+}
+
+variable "azure_secret" {
+  type        = string
+  description = "AZURE_SECRET: OAuth client secret for Azure sign-in."
+  sensitive   = true
+}
+
 locals {
   service_name = "chalkstudio"
   # Derived rather than read from the instance so PG_CONNECTION_NAME stays stable while Cloud SQL is disabled.
@@ -80,7 +91,7 @@ locals {
   # under its own name. PG_HOST / PG_PORT are deliberately absent: they exist only
   # to point local development at docker-compose, and setting them in the deployed
   # environment would bypass the Cloud SQL connector.
-  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL", "GOOGLE_CLIENT_ID", "GOOGLE_AUTH_SECRET", "GITHUB_AUTH_SECRET", "GITHUB_CLIENT_ID"]
+  secret_names = ["JWT_SECRET", "PG_USER", "PG_PASS", "PG_NAME", "PG_CONNECTION_NAME", "URL", "GOOGLE_CLIENT_ID", "GOOGLE_AUTH_SECRET", "GITHUB_AUTH_SECRET", "GITHUB_CLIENT_ID", "AZURE_CLIENT_ID", "AZURE_SECRET"]
 
   secret_values = {
     JWT_SECRET         = var.jwt_secret
@@ -93,6 +104,8 @@ locals {
     GOOGLE_CLIENT_ID   = var.google_client_id
     GITHUB_AUTH_SECRET = var.github_auth_secret
     GITHUB_CLIENT_ID   = var.github_client_id
+    AZURE_CLIENT_ID    = var.azure_client_id
+    AZURE_SECRET       = var.azure_secret
   }
 }
 

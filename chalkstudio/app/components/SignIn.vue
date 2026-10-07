@@ -262,12 +262,12 @@ const { isReady: isGoogleReady, login: googleLogin } = useCodeClient({
 const providers: { name: string; icon: string; login?: () => void; disabled?: Ref<boolean> }[] = [
   {
     name: "Google",
-    icon: "logos:google-icon",
+    icon: "brands:google",
     login: googleLogin,
     disabled: computed(() => !isGoogleReady.value),
   },
-  { name: "GitHub", icon: "simple-icons:github", login: () => signInWithGithubRequest() },
-  { name: "Microsoft", icon: "logos:microsoft-icon", login: () => signInWithMicrosoftRequest() },
+  { name: "GitHub", icon: "brands:github", login: () => signInWithGithubRequest() },
+  { name: "Microsoft", icon: "brands:microsoft", login: () => signInWithMicrosoftRequest() },
 ];
 
 const roleOptions: { value: RegistrationRole; label: string; icon: string }[] = [

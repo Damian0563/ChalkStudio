@@ -49,6 +49,9 @@ export default defineNuxtConfig({
 		configPath: 'tailwind.config.ts',
 	},
 	icon: {
+		customCollections: [
+			{ prefix: 'brands', dir: './app/assets/icons/brands' },
+		],
 		clientBundle: {
 			scan: true,
 		},

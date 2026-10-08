@@ -1,4 +1,4 @@
-import type { BoardAccess, BoardCreationPayload, BoardMeta } from '#shared/types'
+import type { BoardAccess, BoardCreationPayload, BoardMeta, BoardSummary } from '#shared/types'
 import type { NuxtApp } from '#app'
 
 type useWorkspaceOptions = {
@@ -42,6 +42,21 @@ export function useWorkspace(options: useWorkspaceOptions) {
 		return id
 	}
 
+	const updateBoard = async (id: string, board: BoardCreationPayload): Promise<Pick<BoardSummary, 'modifiedAt'>> => {
+		return await options.csrfFetch<Pick<BoardSummary, 'modifiedAt'>>('/api/board/update', {
+			method: 'POST',
+			query: { room: id },
+			body: board,
+		})
+	}
+
+	const deleteBoard = async (id: string): Promise<void> => {
+		await options.csrfFetch('/api/board/delete', {
+			method: 'POST',
+			query: { room: id },
+		})
+	}
+
 	const signOut = async () => {
 		await options.csrfFetch('/api/auth/signout', {
 			method: 'POST',
@@ -54,6 +69,8 @@ export function useWorkspace(options: useWorkspaceOptions) {
 		formatModifiedAt,
 		initWorkspace,
 		createBoard,
+		updateBoard,
+		deleteBoard,
 		signOut,
 	}
 

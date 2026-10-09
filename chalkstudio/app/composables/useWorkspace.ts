@@ -1,68 +1,88 @@
-import type { BoardAccess, BoardCreationPayload, BoardMeta, BoardSummary } from '#shared/types'
-import type { NuxtApp } from '#app'
+import type { BoardAccess, BoardCreationPayload, BoardMeta, BoardSummary } from "#shared/types";
+import type { NuxtApp } from "#app";
 
 type useWorkspaceOptions = {
-	fetch: ReturnType<typeof useRequestFetch>
-	csrfFetch: NuxtApp['$csrfFetch']
-}
+	fetch: ReturnType<typeof useRequestFetch>;
+	csrfFetch: NuxtApp["$csrfFetch"];
+};
 
-export type AccessOption = { value: BoardAccess; label: string; hint: string; icon: string }
-export type FormatModifiedAt = (modifiedAt: string, format: Intl.DateTimeFormatOptions) => string
+export type AccessOption = { value: BoardAccess; label: string; hint: string; icon: string };
+export type FormatModifiedAt = (modifiedAt: string, format: Intl.DateTimeFormatOptions) => string;
 
 export function useWorkspace(options: useWorkspaceOptions) {
 	const accessOptions: AccessOption[] = [
-		{ value: 'public', label: 'Public', hint: 'Anyone can join, even without an account.', icon: 'lucide:globe' },
-		{ value: 'link', label: 'Anyone with the link', hint: 'Signed-in users who have the link.', icon: 'lucide:link' },
-		{ value: 'invite', label: 'Invite only', hint: 'Only the people you add by email.', icon: 'lucide:user-plus' },
-		{ value: 'private', label: 'Private', hint: 'Just you.', icon: 'lucide:lock' },
-	]
+		{
+			value: "public",
+			label: "Public",
+			hint: "Anyone can join, even without an account.",
+			icon: "lucide:globe",
+		},
+		{
+			value: "link",
+			label: "Anyone with the link",
+			hint: "Signed-in users who have the link.",
+			icon: "lucide:link",
+		},
+		{
+			value: "invite",
+			label: "Invite only",
+			hint: "Only the people you add by email.",
+			icon: "lucide:user-plus",
+		},
+		{ value: "private", label: "Private", hint: "Just you.", icon: "lucide:lock" },
+	];
 
-	const localTimeZone = ref<string | null>(null)
+	const localTimeZone = ref<string | null>(null);
 	onMounted(() => {
-		localTimeZone.value = Intl.DateTimeFormat().resolvedOptions().timeZone
-	})
+		localTimeZone.value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	});
 
 	const formatModifiedAt: FormatModifiedAt = (modifiedAt, format) => {
-		if (!localTimeZone.value) return ''
-		return new Intl.DateTimeFormat(undefined, { ...format, timeZone: localTimeZone.value }).format(new Date(modifiedAt))
-	}
+		if (!localTimeZone.value) return "";
+		return new Intl.DateTimeFormat(undefined, { ...format, timeZone: localTimeZone.value }).format(
+			new Date(modifiedAt),
+		);
+	};
 
 	const initWorkspace = async (isNew: boolean) => {
-		return await options.fetch('/api/workspace/init', {
-			method: 'GET',
+		return await options.fetch("/api/workspace/init", {
+			method: "GET",
 			query: { isnew: String(isNew) },
-		})
-	}
+		});
+	};
 
 	const createBoard = async (board: BoardCreationPayload): Promise<string> => {
-		const { id } = await options.csrfFetch<Pick<BoardMeta, 'id'>>('/api/board/create', {
-			method: 'POST',
+		const { id } = await options.csrfFetch<Pick<BoardMeta, "id">>("/api/board/create", {
+			method: "POST",
 			body: board,
-		})
-		return id
-	}
+		});
+		return id;
+	};
 
-	const updateBoard = async (id: string, board: BoardCreationPayload): Promise<Pick<BoardSummary, 'modifiedAt'>> => {
-		return await options.csrfFetch<Pick<BoardSummary, 'modifiedAt'>>('/api/board/update', {
-			method: 'POST',
+	const updateBoard = async (
+		id: string,
+		board: BoardCreationPayload,
+	): Promise<Pick<BoardSummary, "modifiedAt">> => {
+		return await options.csrfFetch<Pick<BoardSummary, "modifiedAt">>("/api/board/update", {
+			method: "POST",
 			query: { room: id },
 			body: board,
-		})
-	}
+		});
+	};
 
 	const deleteBoard = async (id: string): Promise<void> => {
-		await options.csrfFetch('/api/board/delete', {
-			method: 'POST',
+		await options.csrfFetch("/api/board/delete", {
+			method: "DELETE",
 			query: { room: id },
-		})
-	}
+		});
+	};
 
 	const signOut = async () => {
-		await options.csrfFetch('/api/auth/signout', {
-			method: 'POST',
-		})
-		await navigateTo('/')
-	}
+		await options.csrfFetch("/api/auth/signout", {
+			method: "POST",
+		});
+		await navigateTo("/");
+	};
 
 	return {
 		accessOptions,
@@ -72,6 +92,5 @@ export function useWorkspace(options: useWorkspaceOptions) {
 		updateBoard,
 		deleteBoard,
 		signOut,
-	}
-
+	};
 }

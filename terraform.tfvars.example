@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and fill in real values. terraform.tfvars is gitignored.
+
+# project          = "chalkstudio-508318"
+# region           = "europe-central2"
+# enable_cloud_sql = false
+
+pg_user = "chalkstudio"
+# At least 8 characters and must not contain pg_user (Cloud SQL password policy).
+pg_pass = "change-me-please"
+pg_name = "chalkstudio"
+
+jwt_secret = "change-me-to-a-long-random-string"
+
+google_client_id   = "your-google-client-id.apps.googleusercontent.com"
+google_auth_secret = "your-google-client-secret"
+
+github_client_id   = "your-github-client-id"
+github_auth_secret = "your-github-client-secret"
+
+azure_client_id = "your-azure-client-id"
+azure_secret    = "your-azure-client-secret"

@@ -9,3 +9,4 @@ chalkstudio/.output/**
 *.tfstate.backup
 *.tfvars
 *.tfvars.json
+!*.tfvars.example

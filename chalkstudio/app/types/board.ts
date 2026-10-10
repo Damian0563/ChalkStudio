@@ -59,6 +59,7 @@ export type HistoryEvent = {
 
 export type BoardEvent = {
 	type:
+	| "reload"
 	| "drawStart"
 	| "draw"
 	| "drawEnd"

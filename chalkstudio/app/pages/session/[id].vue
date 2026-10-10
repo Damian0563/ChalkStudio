@@ -1,42 +1,98 @@
 <template>
-	<ClientOnly>
-		<div class="relative h-screen w-screen overflow-hidden chalk-grain" :style="{ backgroundColor: background }">
-			<Notice :message="quickNotice" />
-			<Spinner :loading="loading" />
-			<v-stage ref="stageRef" :config="stageConfig" @contextmenu="handleContextMenu" @mousedown="handleMouseDown"
-				@mousemove="handleMouseMove" @mouseup="handleMouseUp" @mouseleave="handleMouseUp" @touchstart="handleMouseDown"
-				@touchmove="handleMouseMove" @touchend="handleMouseUp" @dblclick="handleImageDoubleClick"
-				@dbltap="handleImageDoubleClick">
-				<v-layer ref="layerRef" />
-			</v-stage>
-			<BoardDropdown v-model:settings="settings" v-model:background="background" :is-saved="isSaved"
-				v-model:is-owner="isOwner" />
-			<BoardToolbar v-model:color="color" v-model:stroke-width="strokeWidth" v-model:pen-panel-open="penPanelOpen"
-				v-model:tool="tool" @save-board-state="saveBoardState(room, getImageIds())" @add-note="positionNote($event)"
-				@undo="closeEditorFor(undo())" @redo="closeEditorFor(redo())" @add-image="openImagePicker" />
-			<BoardUsersPannel v-model:users="users" :main-user="user" :settings="settings"
-				@navigate="displayUserLocation($event, users)" v-if="!settings.focusMode" />
-			<BoardZoom :zoom-percent="zoomPercent" :increase-zoom="increaseZoom" :decrease-zoom="decreaseZoom"
-				v-if="!settings.focusMode" />
-			<StickyNotePlacer v-if="isSetupStickyNote && pendingNote" :note="pendingNote" :note-width="NOTE_WIDTH"
-				@place="placeNote($event, user)" @cancel="cancelNotePlacement" />
-			<StickyNoteEditor ref="noteEditorRef" v-model:is-editing="isEditing" v-model:note-config="noteConfig"
-				:max-length="maxLength" @close="cancelNoteEdit" />
-			<BoardAccessModal :status="accessStatus" @join="joinAsGuest" />
-		</div>
-	</ClientOnly>
+  <ClientOnly>
+    <div
+      class="relative h-screen w-screen overflow-hidden chalk-grain"
+      :style="{ backgroundColor: background }"
+    >
+      <Notice :message="quickNotice" />
+      <Spinner :loading="loading" />
+      <v-stage
+        ref="stageRef"
+        :config="stageConfig"
+        @contextmenu="handleContextMenu"
+        @mousedown="handleMouseDown"
+        @mousemove="handleMouseMove"
+        @mouseup="handleMouseUp"
+        @mouseleave="handleMouseUp"
+        @touchstart="handleMouseDown"
+        @touchmove="handleMouseMove"
+        @touchend="handleMouseUp"
+        @dblclick="handleImageDoubleClick"
+        @dbltap="handleImageDoubleClick"
+      >
+        <v-layer ref="layerRef" />
+      </v-stage>
+      <BoardDropdown
+        v-model:settings="settings"
+        v-model:background="background"
+        :is-saved="isSaved"
+        v-model:is-owner="isOwner"
+        @edit-board="detailsBoard = data?.board ?? null"
+      />
+      <BoardToolbar
+        v-model:color="color"
+        v-model:stroke-width="strokeWidth"
+        v-model:pen-panel-open="penPanelOpen"
+        v-model:tool="tool"
+        @save-board-state="saveBoardState(room, getImageIds())"
+        @add-note="positionNote($event)"
+        @undo="closeEditorFor(undo())"
+        @redo="closeEditorFor(redo())"
+        @add-image="openImagePicker"
+      />
+      <BoardUsersPannel
+        v-model:users="users"
+        :main-user="user"
+        :settings="settings"
+        @navigate="displayUserLocation($event, users)"
+        v-if="!settings.focusMode"
+      />
+      <BoardZoom
+        :zoom-percent="zoomPercent"
+        :increase-zoom="increaseZoom"
+        :decrease-zoom="decreaseZoom"
+        v-if="!settings.focusMode"
+      />
+      <StickyNotePlacer
+        v-if="isSetupStickyNote && pendingNote"
+        :note="pendingNote"
+        :note-width="NOTE_WIDTH"
+        @place="placeNote($event, user)"
+        @cancel="cancelNotePlacement"
+      />
+      <StickyNoteEditor
+        ref="noteEditorRef"
+        v-model:is-editing="isEditing"
+        v-model:note-config="noteConfig"
+        :max-length="maxLength"
+        @close="cancelNoteEdit"
+      />
+      <BoardAccessModal :status="accessStatus" @join="joinAsGuest" />
+      <BoardDetailsModal
+        v-if="isOwner"
+        v-model:board="detailsBoard"
+        :access-options="accessOptions"
+        :trigger-reload="triggerPeerReload"
+        :format-modified-at="formatModifiedAt"
+        :update-board="updateBoard"
+        @load="loading = !loading"
+        @message="quickNotice = $event"
+      />
+    </div>
+  </ClientOnly>
 </template>
 
 <script setup lang="ts">
 import type KonvaTypes from "konva";
 import { v4 as uuidv4 } from "uuid";
+import type { BoardSummary } from "#shared/types";
 import type { BoardEvent, Tool, BoardSettings, HistoryEvent } from "~/types/board";
 import type { QuickNotice } from "~/types/general";
 definePageMeta({
-	layout: "blank",
+  layout: "blank",
 });
 useHead({
-	bodyAttrs: { class: "overflow-hidden" },
+  bodyAttrs: { class: "overflow-hidden" },
 });
 
 const BOARD_WIDTH = 3840;
@@ -54,44 +110,49 @@ const requestFetch = useRequestFetch();
 const { $csrfFetch } = useNuxtApp();
 
 const { data, error } = await useAsyncData("board-meta", () =>
-	requestFetch("/api/board/init", { query: { room: room.value, mail: mail.value } }),
+  requestFetch("/api/board/init", { query: { room: room.value, mail: mail.value } }),
 );
 const storedUser = useLocalStorage<string | null>("chalkstudio-user", null);
 const accessStatus = ref(
-	error.value
-		? error.value.status === 401 && storedUser.value
-			? undefined
-			: (error.value.status ?? 500)
-		: undefined,
+  error.value
+    ? error.value.status === 401 && storedUser.value
+      ? undefined
+      : (error.value.status ?? 500)
+    : undefined,
 );
 const user = ref(data.value?.username ?? storedUser.value ?? `guest-${uuidv4().slice(0, 8)}`);
 const isOwner = computed(() => data.value?.isOwner ?? false);
+const detailsBoard = ref<BoardSummary | null>(null);
+const { accessOptions, formatModifiedAt, updateBoard } = useWorkspace({
+  fetch: requestFetch,
+  csrfFetch: $csrfFetch,
+});
 const { users, applyRoster, trackPresence, updatePan } = useBoardUsers(user);
 const joinAsGuest = (username: string) => {
-	user.value = username;
-	storedUser.value = username;
-	accessStatus.value = undefined;
-	join();
+  user.value = username;
+  storedUser.value = username;
+  accessStatus.value = undefined;
+  join();
 };
 const Konva = useKonva();
 
 type VueKonvaComponentRef = {
-	getNode: () => KonvaTypes.Stage | KonvaTypes.Layer;
+  getNode: () => KonvaTypes.Stage | KonvaTypes.Layer;
 };
 
 const { background } = useBoardTheme();
 const settings = ref<BoardSettings>({
-	focusMode: false,
-	consolidateParticipantsPanel: false,
-	showSprites: true,
+  focusMode: false,
+  consolidateParticipantsPanel: false,
+  showSprites: true,
 });
 const { enterFullscreen, exitFullscreen, syncFocusModeWithFullscreen } = useFullscreen(settings);
 watch(
-	() => settings.value.focusMode,
-	(focusMode) => {
-		if (focusMode) enterFullscreen();
-		else exitFullscreen();
-	},
+  () => settings.value.focusMode,
+  (focusMode) => {
+    if (focusMode) enterFullscreen();
+    else exitFullscreen();
+  },
 );
 
 const penPanelOpen = ref(false);
@@ -103,18 +164,18 @@ const stageRef = ref<VueKonvaComponentRef>();
 const layerRef = ref<VueKonvaComponentRef>();
 let websocketStateTimeout: any;
 const stageConfig = computed(() => ({
-	width: viewportWidth.value,
-	height: viewportHeight.value,
-	draggable: tool.value === "pan",
+  width: viewportWidth.value,
+  height: viewportHeight.value,
+  draggable: tool.value === "pan",
 }));
 const noteEditorRef = ref<{ textarea?: HTMLTextAreaElement }>();
 const getStage = () => stageRef.value?.getNode() as KonvaTypes.Stage | undefined;
 const getLayer = () => layerRef.value?.getNode() as KonvaTypes.Layer | undefined;
 
 const { popUpSprite, displayUserLocation } = useBoardPopUp({
-	getLayer,
-	getStage,
-	getViewportSize: () => ({ width: viewportWidth.value, height: viewportHeight.value }),
+  getLayer,
+  getStage,
+  getViewportSize: () => ({ width: viewportWidth.value, height: viewportHeight.value }),
 });
 
 const zoom = ref(1);
@@ -123,249 +184,251 @@ const remoteLines = new Map<string, KonvaTypes.Line>();
 const userSpritePops = new Map<string, number>();
 
 const handleBoardEvent = (event: BoardEvent | HistoryEvent) => {
-	if (event.type === "drawStart" || event.type === "draw" || event.type === "drawEnd") {
-		const isEraser = event.data?.attrs?.globalCompositeOperation === "destination-out";
-		const points = event.data?.attrs?.points;
-		const x = event.type === "drawStart" ? points[0] : points[points.length - 2];
-		const y = event.type === "drawStart" ? points[1] : points[points.length - 1];
-		if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
-			const lastPop = userSpritePops.get(event.user);
-			if (lastPop === undefined || lastPop + 2100 < Date.now()) {
-				popUpSprite({ user: event.user, x, y, color: event?.color || color.value });
-				userSpritePops.set(event.user, Date.now());
-			}
-		}
-		const lineId = event.data?.attrs?.id as string | undefined;
-		const layer = getLayer();
-		if (!lineId || !event.data || !layer) return;
-		let line = remoteLines.get(lineId);
-		if (!line) {
-			line = Konva.Node.create(event.data) as KonvaTypes.Line;
-			layer.add(line);
-			remoteLines.set(lineId, line);
-		} else {
-			line.setAttrs(event.data.attrs);
-		}
-		layer.batchDraw();
-		trackPresence(event.user, { x, y, color: event.color });
-		if (event.type === "drawEnd") remoteLines.delete(lineId);
-	} else if (event.type === "join") {
-		applyRoster(event);
-		if (event.user === user.value && rosterPeers(event).length === 0) void loadPage();
-		else if (isStateProvider(event)) {
-			send(
-				JSON.stringify({ type: "state", user: user.value, target: event.user, data: saveBoard() }),
-			);
-			websocketStateTimeout = setTimeout(() => void loadPage(saveBoard()), wsTimeout);
-		}
-	} else if (event.type === "name-taken") {
-		accessStatus.value = 409;
-	} else if (event.type === "leave") {
-		applyRoster(event);
-	} else if (event.type === "state" && event.target === user.value && event.data) {
-		clearTimeout(websocketStateTimeout);
-		void loadPage(event.data);
-	} else if (event.type === "pan") {
-		updatePan(event.user, event.data.x, event.data.y);
-	} else if (event.type === "stickyNote-new") {
-		const note = Konva.Node.create(event.data) as KonvaTypes.Group;
-		const layer = getLayer();
-		if (!layer || !note) return;
-		attachStickyNoteHandlers(note);
-		trackPresence(event.user, { x: note.attrs.x, y: note.attrs.y, color: event.color });
-		layer.add(note);
-		layer.batchDraw();
-	} else if (event.type === "stickyNote-edit" || event.type === "stickyNote-transform") {
-		const layer = getLayer();
-		const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined;
-		if (!layer || !group) return;
-		event.type === "stickyNote-transform"
-			? group.position({ x: event.data.pos.x, y: event.data.pos.y })
-			: null;
-		applyNoteEdit(group, event.data.note);
-		trackPresence(event.user, event.data.pos as { x: number; y: number });
-	} else if (
-		event.type === "stickyNote-move" ||
-		event.type === "stickyNote-dragStart" ||
-		event.type === "stickyNote-dragEnd"
-	) {
-		const layer = getLayer();
-		const pos = event.type === "stickyNote-move" ? event.data : event.data?.attrs;
-		const group = layer?.findOne(`#${pos?.id}`) as KonvaTypes.Group | undefined;
-		if (!layer || !group) return;
-		group.position({ x: pos.x, y: pos.y });
-		if (event.type === "stickyNote-dragEnd") group.draggable(false);
-		trackPresence(event.user, { x: pos.x, y: pos.y });
-		layer.batchDraw();
-	} else if (event.type === "stickyNote-delete") {
-		const layer = getLayer();
-		const group = layer?.findOne(`#${event.data?.attrs?.id}`) as KonvaTypes.Group | undefined;
-		if (!layer || !group) return;
-		closeEditorFor(group.id());
-		group.destroy();
-		layer.batchDraw();
-	} else if (event.type.startsWith("image-")) {
-		receiveRemoteImage(event as BoardEvent);
-	} else if (event.type === "board-saved") {
-		markSaved();
-	} else if (event.type === "undo" || event.type === "redo") {
-		closeEditorFor(receiveRemoteEvent(event));
-	}
-	if (event.type !== "undo" && event.type !== "redo") recordEvent(event as BoardEvent);
+  if (event.type === "drawStart" || event.type === "draw" || event.type === "drawEnd") {
+    const isEraser = event.data?.attrs?.globalCompositeOperation === "destination-out";
+    const points = event.data?.attrs?.points;
+    const x = event.type === "drawStart" ? points[0] : points[points.length - 2];
+    const y = event.type === "drawStart" ? points[1] : points[points.length - 1];
+    if (!isEraser && points && points.length >= 2 && settings.value.showSprites) {
+      const lastPop = userSpritePops.get(event.user);
+      if (lastPop === undefined || lastPop + 2100 < Date.now()) {
+        popUpSprite({ user: event.user, x, y, color: event?.color || color.value });
+        userSpritePops.set(event.user, Date.now());
+      }
+    }
+    const lineId = event.data?.attrs?.id as string | undefined;
+    const layer = getLayer();
+    if (!lineId || !event.data || !layer) return;
+    let line = remoteLines.get(lineId);
+    if (!line) {
+      line = Konva.Node.create(event.data) as KonvaTypes.Line;
+      layer.add(line);
+      remoteLines.set(lineId, line);
+    } else {
+      line.setAttrs(event.data.attrs);
+    }
+    layer.batchDraw();
+    trackPresence(event.user, { x, y, color: event.color });
+    if (event.type === "drawEnd") remoteLines.delete(lineId);
+  } else if (event.type === "join") {
+    applyRoster(event);
+    if (event.user === user.value && rosterPeers(event).length === 0) void loadPage();
+    else if (isStateProvider(event)) {
+      send(
+        JSON.stringify({ type: "state", user: user.value, target: event.user, data: saveBoard() }),
+      );
+      websocketStateTimeout = setTimeout(() => void loadPage(saveBoard()), wsTimeout);
+    }
+  } else if (event.type === "name-taken") {
+    accessStatus.value = 409;
+  } else if (event.type === "leave") {
+    applyRoster(event);
+  } else if (event.type === "state" && event.target === user.value && event.data) {
+    clearTimeout(websocketStateTimeout);
+    void loadPage(event.data);
+  } else if (event.type === "pan") {
+    updatePan(event.user, event.data.x, event.data.y);
+  } else if (event.type === "stickyNote-new") {
+    const note = Konva.Node.create(event.data) as KonvaTypes.Group;
+    const layer = getLayer();
+    if (!layer || !note) return;
+    attachStickyNoteHandlers(note);
+    trackPresence(event.user, { x: note.attrs.x, y: note.attrs.y, color: event.color });
+    layer.add(note);
+    layer.batchDraw();
+  } else if (event.type === "stickyNote-edit" || event.type === "stickyNote-transform") {
+    const layer = getLayer();
+    const group = layer?.findOne(`#${event.data?.id}`) as KonvaTypes.Group | undefined;
+    if (!layer || !group) return;
+    event.type === "stickyNote-transform"
+      ? group.position({ x: event.data.pos.x, y: event.data.pos.y })
+      : null;
+    applyNoteEdit(group, event.data.note);
+    trackPresence(event.user, event.data.pos as { x: number; y: number });
+  } else if (
+    event.type === "stickyNote-move" ||
+    event.type === "stickyNote-dragStart" ||
+    event.type === "stickyNote-dragEnd"
+  ) {
+    const layer = getLayer();
+    const pos = event.type === "stickyNote-move" ? event.data : event.data?.attrs;
+    const group = layer?.findOne(`#${pos?.id}`) as KonvaTypes.Group | undefined;
+    if (!layer || !group) return;
+    group.position({ x: pos.x, y: pos.y });
+    if (event.type === "stickyNote-dragEnd") group.draggable(false);
+    trackPresence(event.user, { x: pos.x, y: pos.y });
+    layer.batchDraw();
+  } else if (event.type === "stickyNote-delete") {
+    const layer = getLayer();
+    const group = layer?.findOne(`#${event.data?.attrs?.id}`) as KonvaTypes.Group | undefined;
+    if (!layer || !group) return;
+    closeEditorFor(group.id());
+    group.destroy();
+    layer.batchDraw();
+  } else if (event.type.startsWith("image-")) {
+    receiveRemoteImage(event as BoardEvent);
+  } else if (event.type === "board-saved") {
+    markSaved();
+  } else if (event.type === "undo" || event.type === "redo") {
+    closeEditorFor(receiveRemoteEvent(event));
+  } else if (event.type === "reload") {
+    window.location.reload();
+  }
+  if (event.type !== "undo" && event.type !== "redo") recordEvent(event as BoardEvent);
 };
 
 const closeEditorFor = (id: string | undefined) => {
-	if (id && id === noteConfig.value.groupId) cancelNoteEdit();
-	if (id) cancelImageSelection(id);
+  if (id && id === noteConfig.value.groupId) cancelNoteEdit();
+  if (id) cancelImageSelection(id);
 };
 
-const { send, join, leave, rosterPeers, isStateProvider } = useBoardWebSocket({
-	room,
-	getUser: () => user.value,
-	onEvent: handleBoardEvent,
-	onError: (error) => {
-		console.error(error);
-		quickNotice.value = { message: "Error parsing remote event", type: "error" };
-	},
+const { send, join, leave, rosterPeers, isStateProvider, triggerPeerReload } = useBoardWebSocket({
+  room,
+  getUser: () => user.value,
+  onEvent: handleBoardEvent,
+  onError: (error) => {
+    console.error(error);
+    quickNotice.value = { message: "Error parsing remote event", type: "error" };
+  },
 });
 
 const restoreNode = (node: KonvaTypes.Node) =>
-	node instanceof Konva.Image ? void restoreImage(node) : restoreStickyNote(node);
+  node instanceof Konva.Image ? void restoreImage(node) : restoreStickyNote(node);
 const { undo, redo, recordEvent, receiveRemoteEvent } = useHistory({
-	getLayer,
-	getStage,
-	send,
-	onRestore: restoreNode,
-	onChange: () => markUnsaved(),
+  getLayer,
+  getStage,
+  send,
+  onRestore: restoreNode,
+  onChange: () => markUnsaved(),
 });
 
 const {
-	isSetupStickyNote,
-	NOTE_WIDTH,
-	maxLength,
-	pendingNote,
-	isEditing,
-	noteConfig,
-	updateNote,
-	cancelNoteEdit,
-	positionNote,
-	placeNote,
-	cancelNotePlacement,
-	attachStickyNoteHandlers,
-	applyNoteEdit,
-	isStickyNoteTarget,
-	restoreStickyNote,
+  isSetupStickyNote,
+  NOTE_WIDTH,
+  maxLength,
+  pendingNote,
+  isEditing,
+  noteConfig,
+  updateNote,
+  cancelNoteEdit,
+  positionNote,
+  placeNote,
+  cancelNotePlacement,
+  attachStickyNoteHandlers,
+  applyNoteEdit,
+  isStickyNoteTarget,
+  restoreStickyNote,
 } = useStickyNotes({
-	getLayer,
-	getStage,
-	send,
-	recordEvent,
-	getUser: () => user.value,
-	getNoteTextarea: () => noteEditorRef.value?.textarea,
+  getLayer,
+  getStage,
+  send,
+  recordEvent,
+  getUser: () => user.value,
+  getNoteTextarea: () => noteEditorRef.value?.textarea,
 });
 
 const {
-	openImagePicker,
-	restoreImage,
-	receiveRemoteImage,
-	isImageSelected,
-	cancelImageSelection,
-	handleImageDoubleClick,
-	getImageIds,
+  openImagePicker,
+  restoreImage,
+  receiveRemoteImage,
+  isImageSelected,
+  cancelImageSelection,
+  handleImageDoubleClick,
+  getImageIds,
 } = useImages({
-	quickNotice,
-	room,
-	getUser: () => user.value,
-	getLayer,
-	getStage,
-	fetch: useRequestFetch(),
-	send,
-	recordEvent,
+  quickNotice,
+  room,
+  getUser: () => user.value,
+  getLayer,
+  getStage,
+  fetch: useRequestFetch(),
+  send,
+  recordEvent,
 });
 
 const { handleMouseDown, handleMouseMove, handleMouseUp } = useDrawing({
-	getStage,
-	getLayer,
-	send,
-	recordEvent,
-	getUser: () => user.value,
-	tool,
-	color,
-	strokeWidth,
-	penPanelOpen,
-	isEditing,
-	cancelNoteEdit,
-	isStickyNoteTarget,
-	isImageSelected,
-	cancelImageSelection,
+  getStage,
+  getLayer,
+  send,
+  recordEvent,
+  getUser: () => user.value,
+  tool,
+  color,
+  strokeWidth,
+  penPanelOpen,
+  isEditing,
+  cancelNoteEdit,
+  isStickyNoteTarget,
+  isImageSelected,
+  cancelImageSelection,
 });
 
 const { increaseZoom, decreaseZoom } = useZoom({ getStage, getLayer, zoom });
 useKeyboard({
-	zoom: { increaseZoom, decreaseZoom },
-	history: { undo: () => closeEditorFor(undo()), redo: () => closeEditorFor(redo()) },
-	settings,
-	save: () => saveBoardState(room.value, getImageIds()),
+  zoom: { increaseZoom, decreaseZoom },
+  history: { undo: () => closeEditorFor(undo()), redo: () => closeEditorFor(redo()) },
+  settings,
+  save: () => saveBoardState(room.value, getImageIds()),
 });
 const {
-	isSaved,
-	markUnsaved,
-	markSaved,
-	loadPage,
-	saveBoard,
-	saveBoardState,
-	autoSaveBoardState,
-	wsTimeout,
+  isSaved,
+  markUnsaved,
+  markSaved,
+  loadPage,
+  saveBoard,
+  saveBoardState,
+  autoSaveBoardState,
+  wsTimeout,
 } = useBoardState({
-	getStage,
-	getLayer,
-	quickNotice,
-	loading,
-	room,
-	mail,
-	onRestore: restoreNode,
-	onRestoreImage: restoreImage,
-	fetch: $csrfFetch,
-	send,
-	getUser: () => user.value,
+  getStage,
+  getLayer,
+  quickNotice,
+  loading,
+  room,
+  mail,
+  onRestore: restoreNode,
+  onRestoreImage: restoreImage,
+  fetch: $csrfFetch,
+  send,
+  getUser: () => user.value,
 });
 
 watch(
-	noteConfig,
-	() => {
-		if (isEditing.value) updateNote(user.value);
-	},
-	{ deep: true },
+  noteConfig,
+  () => {
+    if (isEditing.value) updateNote(user.value);
+  },
+  { deep: true },
 );
 
 const setViewportSize = () => {
-	viewportWidth.value = window.innerWidth;
-	viewportHeight.value = window.innerHeight;
+  viewportWidth.value = window.innerWidth;
+  viewportHeight.value = window.innerHeight;
 };
 
 let interval: any;
 onMounted(() => {
-	loading.value = true;
-	if (!accessStatus.value) join();
-	setViewportSize();
-	window.addEventListener("resize", setViewportSize);
-	window.addEventListener("beforeunload", autoSaveBoardState);
-	document.addEventListener("fullscreenchange", syncFocusModeWithFullscreen);
-	loading.value = false;
-	interval = setInterval(autoSaveBoardState, 60_000);
+  loading.value = true;
+  if (!accessStatus.value) join();
+  setViewportSize();
+  window.addEventListener("resize", setViewportSize);
+  window.addEventListener("beforeunload", autoSaveBoardState);
+  document.addEventListener("fullscreenchange", syncFocusModeWithFullscreen);
+  loading.value = false;
+  interval = setInterval(autoSaveBoardState, 60_000);
 });
 
 onUnmounted(() => {
-	if (settings.value.focusMode) exitFullscreen();
-	window.removeEventListener("resize", setViewportSize);
-	window.removeEventListener("beforeunload", autoSaveBoardState);
-	document.removeEventListener("fullscreenchange", syncFocusModeWithFullscreen);
-	clearInterval(interval);
-	autoSaveBoardState();
-	leave();
+  if (settings.value.focusMode) exitFullscreen();
+  window.removeEventListener("resize", setViewportSize);
+  window.removeEventListener("beforeunload", autoSaveBoardState);
+  document.removeEventListener("fullscreenchange", syncFocusModeWithFullscreen);
+  clearInterval(interval);
+  autoSaveBoardState();
+  leave();
 });
 
 const handleContextMenu = (e: KonvaTypes.KonvaEventObject<MouseEvent>) => {
-	e.evt.preventDefault();
+  e.evt.preventDefault();
 };
 </script>

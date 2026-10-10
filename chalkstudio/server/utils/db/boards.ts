@@ -9,7 +9,7 @@ export const useBoardRepository = async () => {
 
 	const getRoomDetails = async (
 		room: string,
-	): Promise<(BoardInitDetails & { ownerId: number }) | undefined> => {
+	): Promise<(BoardInitDetails & { ownerId: number; modifiedAt: string }) | undefined> => {
 		const [board] = await pool
 			.select({
 				id: boards.id,
@@ -18,6 +18,7 @@ export const useBoardRepository = async () => {
 				description: boards.description,
 				authorization: boards.authorization,
 				allowedUsers: boards.allowedUsers,
+				modifiedAt: boards.modifiedAt,
 			})
 			.from(boards)
 			.where(sql`${boards.id} = ${room}`);
@@ -28,6 +29,7 @@ export const useBoardRepository = async () => {
 			description: board.description,
 			authorization: board.authorization,
 			allowedUsers: board.allowedUsers,
+			modifiedAt: board.modifiedAt.toISOString(),
 		};
 	};
 

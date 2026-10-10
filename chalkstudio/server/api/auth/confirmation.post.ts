@@ -11,7 +11,8 @@ export default defineEventHandler(async (event) => {
 		throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Please provide a valid email address.' })
 	}
 
-	const { checkUserExists, insertLoginCode } = await useDatabase()
+	const { checkUserExists } = await useUserRepository()
+	const { insertLoginCode } = await useLoginCodeRepository()
 	if (await checkUserExists(email)) return null
 
 	const code: string = getRandomCode()

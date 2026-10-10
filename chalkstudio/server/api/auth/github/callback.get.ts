@@ -66,7 +66,7 @@ export default defineEventHandler(async (event) => {
 	}
 	if (!email) throw githubFailed();
 
-	const { loginWithOAuth } = await useDatabase();
+	const { loginWithOAuth } = await useUserRepository();
 	const { isNew, ...session } = await loginWithOAuth({
 		name: profile.name || profile.login,
 		email,

@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
 	const board = parseBoardPayload(await readBody(event));
 
-	const { getRoomDetails, updateBoard } = await useDatabase();
+	const { getRoomDetails, updateBoard } = await useBoardRepository();
 	const existing = await getRoomDetails(room);
 	if (!existing) throw notFound();
 	if (existing.ownerId !== Number(event.context.user.userId)) {

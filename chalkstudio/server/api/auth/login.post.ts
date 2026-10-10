@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 		throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Please fill in all fields.' })
 	}
 
-	const { login } = await useDatabase()
+	const { login } = await useUserRepository()
 	const session = await login(email, password)
 	if (!session) {
 		throw createError({ statusCode: 401, statusMessage: 'Unauthorized', message: 'Invalid credentials.' })

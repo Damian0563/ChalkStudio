@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
 		});
 	const { room } = getQuery(event);
 	if (typeof room !== "string" || !isUuid(room)) throw notFound();
-	const { deleteBoard, getRoomDetails } = await useDatabase();
+	const { deleteBoard, getRoomDetails } = await useBoardRepository();
 	const existing = await getRoomDetails(room);
 	if (!existing) throw notFound();
 	if (existing.ownerId !== Number(event.context.user.userId)) {

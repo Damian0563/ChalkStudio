@@ -55,6 +55,7 @@
           </div>
           <div class="flex shrink-0 items-center gap-1 self-start">
             <button
+              v-if="deleteBoard"
               type="button"
               aria-label="Delete board"
               @click="showDeleteBoardModal = true"
@@ -252,6 +253,7 @@
               Save changes
             </button>
             <NuxtLink
+              v-if="!isCurrentBoard"
               :to="`/session/${board.id}`"
               class="group flex items-center justify-center gap-2 rounded-lg bg-coral px-4 py-2.5 font-sans text-sm font-semibold text-chalk transition-colors hover:bg-coral-soft"
             >
@@ -268,6 +270,7 @@
     </motion.div>
   </AnimatePresence>
   <DeleteBoardPopUp
+    v-if="deleteBoard"
     :open="showDeleteBoardModal"
     :title="board?.title ?? ''"
     @cancel="showDeleteBoardModal = false"
@@ -293,7 +296,8 @@ const props = defineProps<{
     id: string,
     board: BoardCreationPayload,
   ) => Promise<Pick<BoardSummary, "modifiedAt">>;
-  deleteBoard: (id: string) => Promise<void>;
+  deleteBoard?: (id: string) => Promise<void>;
+  triggerReload?: (board: BoardCreationPayload) => void;
 }>();
 const emits = defineEmits<{
   (e: "load"): void;
@@ -335,6 +339,8 @@ const closeButton = useTemplateRef<HTMLButtonElement>("closeButton");
 const requestUrl = useRequestURL();
 const { copy, copied } = useClipboard({ legacy: true });
 
+const route = useRoute();
+const isCurrentBoard = computed(() => route.path === `/session/${board.value?.id}`);
 const boardUrl = computed(() => `${requestUrl.origin}/session/${board.value?.id}`);
 
 watch(
@@ -362,15 +368,17 @@ const onSubmit = () => {
   return submitForm(async (changes) => {
     const { modifiedAt } = await props.updateBoard(saved.id, changes);
     Object.assign(saved, changes, { modifiedAt });
+    props.triggerReload?.(changes);
     emits("message", { message: "Board updated.", type: "success" });
   }, "An error occured while saving the board. Please try again later.");
 };
 
 const onDelete = () => {
   const saved = board.value;
-  if (!saved) return;
+  const deleteBoard = props.deleteBoard;
+  if (!saved || !deleteBoard) return;
   return runRequest(async () => {
-    await props.deleteBoard(saved.id);
+    await deleteBoard(saved.id);
     close();
     emits("deleted", saved.id);
     emits("message", { message: "Board deleted.", type: "success" });

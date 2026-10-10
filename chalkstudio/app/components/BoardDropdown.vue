@@ -174,6 +174,7 @@
             <button
               type="button"
               class="flex w-full items-center gap-3 border-b border-chalk/10 px-3 py-3 text-left text-[0.8125rem] font-semibold text-chalk/90 transition-colors hover:bg-chalk/[0.03]"
+              @click="editBoard"
             >
               <Icon
                 name="lucide:pencil-line"
@@ -302,12 +303,17 @@ const settings = defineModel<BoardSettings>("settings", { required: true });
 const background = defineModel<string>("background", { required: true });
 const isOwner = defineModel<boolean>("isOwner", { required: true });
 const props = defineProps<{ isSaved: boolean }>();
+const emits = defineEmits<{ (e: "editBoard"): void }>();
 const open = ref(false);
 const showManual = ref(false);
 const confirmLeave = ref(false);
 const goHome = () => {
   if (props.isSaved) navigateTo("/");
   else confirmLeave.value = true;
+};
+const editBoard = () => {
+  open.value = false;
+  emits("editBoard");
 };
 const onKeydown = (event: KeyboardEvent) => {
   if (event.key !== "Escape") return;

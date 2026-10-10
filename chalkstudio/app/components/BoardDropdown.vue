@@ -1,7 +1,8 @@
 <template>
   <div
     v-if="!open"
-    class="fixed top-4 left-4 z-10 overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+    :class="{ 'board-light': isLight }"
+    class="fixed top-4 left-4 z-10 overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/[0.92] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
   >
     <div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
     <button
@@ -28,6 +29,7 @@
 
     <motion.aside
       class="fixed inset-y-0 left-0 z-20 flex h-screen w-72 max-w-[85vw] md:w-80 lg:w-96 flex-col overflow-hidden border-r border-chalk/10 bg-board-raised shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)]"
+      :class="{ 'board-light': isLight }"
       role="dialog"
       aria-modal="true"
       :aria-label="showManual ? 'Manual' : 'Board menu'"
@@ -302,7 +304,7 @@ const settingToggles: { key: keyof BoardSettings; label: string }[] = [
 const settings = defineModel<BoardSettings>("settings", { required: true });
 const background = defineModel<string>("background", { required: true });
 const isOwner = defineModel<boolean>("isOwner", { required: true });
-const props = defineProps<{ isSaved: boolean }>();
+const props = defineProps<{ isSaved: boolean; isLight: boolean }>();
 const emits = defineEmits<{ (e: "editBoard"): void }>();
 const open = ref(false);
 const showManual = ref(false);

@@ -1,8 +1,8 @@
 <template>
 	<AnimatePresence @exitComplete="onExitComplete">
 		<motion.div v-if="visible && activeNotice" :key="noticeKey" role="status" aria-live="polite"
-			class="fixed bottom-[1rem] left-4 z-[70] w-[min(100vw-2rem,22rem)] overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
-			:class="style.border" :initial="{ opacity: 0, y: 14, x: 10 }" :animate="{ opacity: 1, y: 0, x: 0 }"
+			class="fixed bottom-[1rem] left-4 z-[70] w-[min(100vw-2rem,22rem)] overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/[0.92] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+			:class="[style.border, { 'board-light': isLight }]" :initial="{ opacity: 0, y: 14, x: 10 }" :animate="{ opacity: 1, y: 0, x: 0 }"
 			:exit="{ opacity: 0, y: 8, x: 6, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }"
 			:transition="{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }">
 			<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
@@ -38,6 +38,7 @@ const NOTICE_DURATION_SEC = NOTICE_DURATION_MS / 1000
 
 const props = defineProps<{
 	message: QuickNotice | undefined
+	isLight?: boolean
 }>()
 
 const NOTICE_STYLES = {

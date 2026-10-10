@@ -18,7 +18,15 @@ export const boardBackgrounds: BoardBackground[] = [
 	{ name: 'Mist', value: '#e3e8ee' },
 ]
 
+const LIGHT_LUMINANCE_THRESHOLD = 160
+
+const isLightColor = (hex: string) => {
+	const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
+	return 0.299 * r! + 0.587 * g! + 0.114 * b! > LIGHT_LUMINANCE_THRESHOLD
+}
+
 export function useBoardTheme() {
 	const background = useLocalStorage<string>('chalkstudio-board-background', boardBackgrounds[0]!.value)
-	return { background }
+	const isLight = computed(() => isLightColor(background.value))
+	return { background, isLight }
 }

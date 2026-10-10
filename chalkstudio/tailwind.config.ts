@@ -4,14 +4,14 @@ export default {
 		extend: {
 			colors: {
 				board: {
-					DEFAULT: '#1a2332',
-					raised: '#243044',
-					frame: '#2f3d52',
+					DEFAULT: 'rgb(var(--color-board) / <alpha-value>)',
+					raised: 'rgb(var(--color-board-raised) / <alpha-value>)',
+					frame: 'rgb(var(--color-board-frame) / <alpha-value>)',
 				},
 				chalk: {
-					DEFAULT: '#f5f0e8',
-					muted: '#c4bfb4',
-					faint: '#9ba8b8',
+					DEFAULT: 'rgb(var(--color-chalk) / <alpha-value>)',
+					muted: 'rgb(var(--color-chalk-muted) / <alpha-value>)',
+					faint: 'rgb(var(--color-chalk-faint) / <alpha-value>)',
 				},
 				coral: {
 					DEFAULT: '#e85d4c',

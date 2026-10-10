@@ -1,11 +1,11 @@
 <template>
-	<div class="fixed top-4 right-4 z-10 flex items-start gap-3">
+	<div class="fixed top-4 right-4 z-10 flex items-start gap-3" :class="{ 'board-light': isLight }">
 		<div v-if="!consolidateParticipantsPanel" class="flex items-start gap-3">
 			<div v-for="[id, boardUser] in visibleUsers" :key="id"
 				class="flex w-14 flex-col items-center gap-1 cursor-pointer" :title="boardUser.name"
 				@click="mainUser === boardUser.name ? null : emits('navigate', boardUser.name)">
 				<span class="h-8 w-8 shrink-0 overflow-hidden rounded-full"
-					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
+					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px var(--avatar-glow)` }">
 					<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
 				</span>
 				<span
@@ -16,14 +16,14 @@
 			</div>
 
 			<button v-if="hiddenCount > 0" type="button" title="Show all users"
-				class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/92 text-xs font-semibold text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
+				class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/[0.92] text-xs font-semibold text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
 				:aria-label="`Show all ${users.size} users`" @click="listOpen = true">
 				+{{ hiddenCount }}
 			</button>
 		</div>
 		<div v-else>
 			<button type="button" title="Show all users" @click="listOpen = true"
-				class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/92 text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
+				class="flex h-11 w-10 items-center justify-center rounded-xl border border-chalk/10 bg-board-raised/[0.92] text-chalk shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm transition-colors hover:bg-chalk/[0.06] active:bg-coral/15 active:text-coral-soft"
 				:aria-label="`Show all ${users.size} users`">
 				<Icon name="lucide:users" class="h-4 w-4 shrink-0" aria-hidden="true" />
 			</button>
@@ -32,7 +32,7 @@
 
 	<motion.aside v-if="listOpen"
 		class="fixed inset-y-0 right-0 z-20 flex h-screen w-64 flex-col overflow-hidden border-l border-chalk/10 bg-board-raised shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65)]"
-		role="dialog" aria-label="Users in session" :initial="{ x: '100%' }" :animate="{ x: 0 }"
+		:class="{ 'board-light': isLight }" role="dialog" aria-label="Users in session" :initial="{ x: '100%' }" :animate="{ x: 0 }"
 		:transition="{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }">
 		<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
 
@@ -51,7 +51,7 @@
 			<li v-for="[id, boardUser] in users" :key="id"
 				class="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-chalk/[0.04] cursor-pointer">
 				<span class="h-8 w-8 shrink-0 overflow-hidden rounded-full"
-					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px rgba(245,240,232,0.35)` }">
+					:style="{ boxShadow: `0 0 0 2px ${boardUser.color}, 0 0 10px var(--avatar-glow)` }">
 					<img :src="userAvatarUrl" alt="" class="h-full w-full" draggable="false">
 				</span>
 				<span class="min-w-0 truncate text-sm font-semibold text-chalk/80"
@@ -70,6 +70,7 @@ import userAvatarUrl from '~/assets/user-avatar.svg'
 const props = defineProps<{
 	mainUser: string
 	settings: BoardSettings
+	isLight: boolean
 }>()
 
 const emits = defineEmits<{

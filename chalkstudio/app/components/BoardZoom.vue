@@ -1,7 +1,7 @@
 <template>
 	<div
-		class="fixed bottom-4 right-4 z-10 flex flex-col overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
-		role="group" aria-label="Canvas zoom">
+		class="fixed bottom-4 right-4 z-10 flex flex-col overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/[0.92] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+		:class="{ 'board-light': isLight }" role="group" aria-label="Canvas zoom">
 		<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
 		<div class="flex items-stretch">
 			<button type="button"
@@ -28,5 +28,6 @@ defineProps<{
 	zoomPercent: number
 	increaseZoom: () => void
 	decreaseZoom: () => void
+	isLight: boolean
 }>()
 </script>

@@ -1,8 +1,8 @@
 <template>
 	<div class="fixed top-4 left-1/2 z-10 max-w-[calc(100vw-6rem)] -translate-x-1/2" role="toolbar"
-		aria-label="Drawing tools" ref="toolbarRef">
+		aria-label="Drawing tools" ref="toolbarRef" :class="{ 'board-light': isLight }">
 		<div
-			class="flex flex-col overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/92 shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm">
+			class="flex flex-col overflow-hidden rounded-xl border border-chalk/10 bg-board-raised/[0.92] shadow-[0_10px_36px_-10px_rgba(0,0,0,0.55)] backdrop-blur-sm">
 			<div class="h-px w-full chalk-line opacity-55" aria-hidden="true" />
 			<div class="flex items-center gap-1 overflow-x-auto px-2 py-1.5 sm:gap-1.5 sm:px-3">
 				<div class="flex shrink-0 items-center gap-0.5" role="group" aria-label="Tools">
@@ -264,6 +264,7 @@
 
 <script setup lang="ts">
 import type { StickyNote, Tool } from '~/types/board'
+defineProps<{ isLight: boolean }>()
 const color = defineModel<string>('color', { required: true })
 const strokeWidth = defineModel<number>('strokeWidth', { required: true })
 const penPanelOpen = defineModel<boolean>('penPanelOpen', { required: true })

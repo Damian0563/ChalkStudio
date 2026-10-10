@@ -3,6 +3,24 @@
 @tailwind utilities;
 
 @layer base {
+	:root {
+		--color-board: 26 35 50;
+		--color-board-raised: 36 48 68;
+		--color-board-frame: 47 61 82;
+		--color-chalk: 245 240 232;
+		--color-chalk-muted: 196 191 180;
+		--color-chalk-faint: 155 168 184;
+		--avatar-glow: rgba(245, 240, 232, 0.35);
+	}
+
+	/* Board chrome over a light background: a deeper surface and brighter secondary text */
+	.board-light {
+		--color-board-raised: 21 28 40;
+		--color-chalk-muted: 214 210 202;
+		--color-chalk-faint: 190 200 212;
+		--avatar-glow: rgba(15, 23, 42, 0.45);
+	}
+
 	html {
 		background-color: #1a2332;
 		color: #f5f0e8;

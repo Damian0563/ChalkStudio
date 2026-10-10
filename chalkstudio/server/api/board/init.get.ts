@@ -7,7 +7,7 @@ export default defineEventHandler(async (event): Promise<{ username: string; isO
 	const { room, mail } = getQuery(event)
 	if (typeof room !== 'string' || !isUuid(room)) throw notFound()
 
-	const { getRoomDetails } = await useDatabase()
+	const { getRoomDetails } = await useBoardRepository()
 	const board = await getRoomDetails(room)
 	if (!board) throw notFound()
 

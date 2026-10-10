@@ -23,7 +23,7 @@ export default defineEventHandler(async (event): Promise<{ ok: boolean }> => {
 		throw badRequest('The board is not valid.')
 	}
 
-	const { getRoomDetails, saveBoard } = await useDatabase()
+	const { getRoomDetails, saveBoard } = await useBoardRepository()
 	const board = await getRoomDetails(room)
 	if (!board) throw notFound()
 

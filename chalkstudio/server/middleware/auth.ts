@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
 	const refreshToken = getCookie(event, refreshCookieName)
 	if (!refreshToken) return
 
-	const session = await (await useDatabase()).findByRefreshToken(refreshToken)
+	const session = await (await useUserRepository()).findByRefreshToken(refreshToken)
 	if (!session) return endSession(event)
 
 	startSession(event, session)

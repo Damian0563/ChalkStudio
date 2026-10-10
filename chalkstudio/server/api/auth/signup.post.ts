@@ -14,7 +14,8 @@ export default defineEventHandler(async (event) => {
 		throw createError({ statusCode: 400, statusMessage: 'Bad Request', message: 'Please choose a valid account type.' })
 	}
 
-	const { createUser, consumeLoginCode } = await useDatabase()
+	const { createUser } = await useUserRepository()
+	const { consumeLoginCode } = await useLoginCodeRepository()
 	if (!await consumeLoginCode(email, code)) throw invalidCode()
 
 	const session = await createUser({ name, email, password, role })

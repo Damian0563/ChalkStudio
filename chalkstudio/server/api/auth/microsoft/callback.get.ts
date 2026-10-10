@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
 		);
 		const identity = idToken ? readMicrosoftIdentity(idToken, clientId) : undefined;
 		if (!identity) throw new Error("Invalid response");
-		const { loginWithOAuth } = await useDatabase();
+		const { loginWithOAuth } = await useUserRepository();
 		const result = await loginWithOAuth({ ...identity, role });
 		startSession(event, {
 			identity: result.identity,

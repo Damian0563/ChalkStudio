@@ -7,7 +7,7 @@ export default defineEventHandler(async (event): Promise<Pick<BoardMeta, 'id'>> 
 	}
 	const board = parseBoardPayload(await readBody(event))
 
-	const { createBoard } = await useDatabase()
+	const { createBoard } = await useBoardRepository()
 	const id = await createBoard(event.context.user.userId, board)
 	const { enqueue } = useTasks()
 	await Promise.all(board.allowedUsers.map((email) => enqueue('send-invites', { email, room: id })))

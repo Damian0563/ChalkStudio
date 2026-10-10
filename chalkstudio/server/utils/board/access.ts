@@ -8,7 +8,7 @@ const decodeMail = (mail: unknown): string | undefined => {
 }
 
 export const resolveBoardAccess = async (event: H3Event, board: BoardInitDetails & { ownerId: number }, mail: unknown): Promise<UserIdentity | undefined> => {
-	const { getUserEmail, getUserByMail } = await useDatabase()
+	const { getUserEmail, getUserByMail } = await useUserRepository()
 	const isAllowed = (email: string | undefined): email is string => !!email && !!board.allowedUsers?.includes(email)
 	const invitedMail = decodeMail(mail)
 	const user = event.context.user ?? (isAllowed(invitedMail) ? await getUserByMail(invitedMail) : undefined)
